@@ -172,7 +172,9 @@ lazy_static! {
 
 /// Used to determine if an event changed the entry.
 pub enum EntryStatus {
+    /// Send the event to the device.
     Change,
+    /// Don't send the event to the device.
     NoChange,
 }
 
@@ -273,6 +275,36 @@ impl Terminal {
         return EntryStatus::NoChange;
     }
 
+    fn home(&mut self) -> EntryStatus {
+        if self.pos > 0 {
+            let n_lefts = self.pos;
+            let left_events = [
+                InputEvent::new(EventType::KEY, Key::KEY_LEFT.code(), 1),
+                InputEvent::new(EventType::KEY, Key::KEY_LEFT.code(), 0),
+            ]
+            .repeat(n_lefts);
+            trace!("home left events: {:?}", left_events);
+            self.device.emit(left_events.as_slice()).unwrap();
+            self.pos = 0;
+        }
+        return EntryStatus::NoChange;
+    }
+
+    fn end(&mut self) -> EntryStatus {
+        if self.pos < self.entry.len() {
+            let n_rights = self.entry.len() - self.pos;
+            let right_events = [
+                InputEvent::new(EventType::KEY, Key::KEY_RIGHT.code(), 1),
+                InputEvent::new(EventType::KEY, Key::KEY_RIGHT.code(), 0),
+            ]
+            .repeat(n_rights);
+            trace!("end right events: {:?}", right_events);
+            self.device.emit(right_events.as_slice()).unwrap();
+            self.pos = self.entry.len();
+        }
+        return EntryStatus::NoChange;
+    }
+
     fn add_char(&mut self, c: char) -> EntryStatus {
         self.entry.insert(self.pos, c);
         self.pos += 1;
@@ -304,6 +336,8 @@ impl Terminal {
             Key::KEY_DELETE => self.delete(),
             Key::KEY_LEFT => self.left(),
             Key::KEY_RIGHT => self.right(),
+            Key::KEY_END => self.end(),
+            Key::KEY_HOME => self.home(),
             _ => EntryStatus::NoChange,
         }
     }
@@ -326,13 +360,20 @@ impl Terminal {
 
     /// Clear the text by sending backspaces
     pub fn clear(&mut self) {
-        let mut events = vec![
-            InputEvent::new(EventType::KEY, Key::KEY_BACKSPACE.code(), 1),
-            InputEvent::new(EventType::KEY, Key::KEY_BACKSPACE.code(), 0),
-        ];
-        // the + 1 is for the >
+        // Move to the end of the entry
+        self.end();
+
+        let mut events = Vec::new();
+        // Send the backspaces
+        events.append(
+            vec![
+                InputEvent::new(EventType::KEY, Key::KEY_BACKSPACE.code(), 1),
+                InputEvent::new(EventType::KEY, Key::KEY_BACKSPACE.code(), 0),
+            ]
+            .as_mut(),
+        );
         events = events.repeat(self.entry.len() + 1);
-        trace!("Clear events: {:?}", events);
+        trace!("Clear BS events: {:?}", events);
         self.device.emit(events.as_slice()).unwrap();
     }
 

@@ -47,7 +47,7 @@ fn release_keyboards() {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // env_logger::init();
-    env_logger::Builder::from_env(Env::default().default_filter_or("debug")).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("trace")).init();
 
     // setup uinput virtual device
     let uinput_device = uinput::create_uinput_device()?;
