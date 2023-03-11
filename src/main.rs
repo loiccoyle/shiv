@@ -9,6 +9,10 @@ mod terminal;
 mod uinput;
 
 /// Determine if a device is a keyboard.
+///
+/// # Arguments
+///
+/// * `device` - The device to check.
 fn check_device_is_keyboard(device: &Device) -> bool {
     if device
         .supported_keys()
@@ -61,8 +65,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for device in keyboard_devices.iter() {
         debug!("Device: {:?}", device.name());
     }
-    let mut stream_map = StreamMap::new();
 
+    let mut stream_map = StreamMap::new();
+    // Grab the keyboards and feed their streams into `stream_map`.
     for (i, mut device) in keyboard_devices.into_iter().enumerate() {
         let _ = device.grab();
         stream_map.insert(i, device.into_event_stream()?);
@@ -70,9 +75,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Listening for events...");
     debug!("{:?} streams", stream_map.len());
 
+    // Event loop
     while let Some((_, Ok(event))) = stream_map.next().await {
+        // Event is passed to the keyboard class
+        // It then passes it to the terminal class
+        // The terminal class keeps track of the inputs and decides wether
+        // to pass it to the virtual device or not
         keyboard.handle_event(&event);
-        // uinput_device.emit(&[event]).unwrap();
         debug!("Keyboard state: {:?}", keyboard);
 
         if keyboard.is_ctrl_c() || keyboard.is_escape() {
@@ -81,7 +90,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             release_keyboards();
             break;
         } else if keyboard.is_enter() {
-            info!("Enter detected, Running command and writing");
+            info!("Enter detected, Running command and typing output...");
             let out = keyboard.terminal.run();
             keyboard.terminal.write(out);
             release_keyboards();
