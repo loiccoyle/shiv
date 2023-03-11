@@ -54,6 +54,7 @@ impl Keyboard {
 
     fn update_keysyms(&mut self, event: &evdev::InputEvent, key: Key) {
         if event.value() == 0 {
+            // Key is released
             self.keysyms.remove(key);
             self.terminal.device.emit(&[*event]).unwrap();
         } else {
@@ -65,8 +66,10 @@ impl Keyboard {
                 EntryStatus::NoChange => {}
             }
             if event.value() == 1 {
+                // Key is pressed
                 self.keysyms.insert(key);
             } else if event.value() == 2 {
+                // Key is repeated
                 debug!("Key repeat");
             }
         }
