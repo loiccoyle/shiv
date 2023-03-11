@@ -5,7 +5,7 @@ use env_logger::Env;
 mod keyboard;
 mod terminal;
 mod uinput;
-mod permission;
+mod permissions;
 
 /// Determine if a device is a keyboard.
 ///
@@ -48,7 +48,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // env_logger::init();
     env_logger::Builder::from_env(Env::default().default_filter_or("log::info")).init();
 
-    let uid = permission::get_caller_uid()?;
+    let uid = permissions::get_caller_uid()?;
     log::info!("Caller UID: {}", uid);
 
     // setup uinput virtual device
@@ -94,7 +94,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             break;
         } else if keyboard.is_enter() {
             log::info!("Enter detected, Running command and typing output...");
-            permission::drop_privileges(uid)?;
+            permissions::drop_privileges(uid)?;
             log::info!("Dropped privileges");
             let out = keyboard.terminal.run(uid.into());
             match out {
