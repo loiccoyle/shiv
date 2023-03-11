@@ -1,7 +1,5 @@
 use evdev::uinput::VirtualDevice;
 use evdev::AttributeSet;
-use evdev::EventType;
-use evdev::InputEvent;
 use evdev::Key;
 use std::collections::HashSet;
 use std::fmt::Debug;
@@ -31,7 +29,6 @@ pub struct Keyboard {
     pub modifiers: HashSet<Modifier>,
     pub keysyms: AttributeSet<evdev::Key>,
     pub terminal: Terminal,
-    pub device: VirtualDevice,
 }
 
 impl Debug for Keyboard {
@@ -49,20 +46,8 @@ impl Keyboard {
         Keyboard {
             modifiers: HashSet::new(),
             keysyms: AttributeSet::new(),
-            terminal: Terminal::new(),
-            device,
+            terminal: Terminal::new(device),
         }
-    }
-
-    pub fn init(&mut self) {
-        self.device
-            .emit(&[
-                InputEvent::new(EventType::KEY, Key::KEY_LEFTSHIFT.code(), 1),
-                InputEvent::new(EventType::KEY, Key::KEY_DOT.code(), 1),
-                InputEvent::new(EventType::KEY, Key::KEY_DOT.code(), 0),
-                InputEvent::new(EventType::KEY, Key::KEY_LEFTSHIFT.code(), 0),
-            ])
-            .unwrap();
     }
 
     pub fn handle_event(&mut self, event: &evdev::InputEvent) {
@@ -78,12 +63,12 @@ impl Keyboard {
     fn update_keysyms(&mut self, event: &evdev::InputEvent, key: Key) {
         if event.value() == 0 {
             self.keysyms.remove(key);
-            self.device.emit(&[*event]).unwrap();
+            self.terminal.device.emit(&[*event]).unwrap();
         } else {
             match self.terminal.handle_key(key, self.is_shift()) {
                 EntryStatus::Change => {
                     println!("Entry change");
-                    self.device.emit(&[*event]).unwrap();
+                    self.terminal.device.emit(&[*event]).unwrap();
                 }
                 EntryStatus::NoChange => {}
             }
@@ -100,11 +85,11 @@ impl Keyboard {
             self.modifiers.insert(modifier);
             // Pass through the shift modifier for capitals
             if self.is_shift() {
-                self.device.emit(&[*event]).unwrap();
+                self.terminal.device.emit(&[*event]).unwrap();
             }
         } else if event.value() == 0 {
             self.modifiers.remove(&modifier);
-            self.device.emit(&[*event]).unwrap();
+            self.terminal.device.emit(&[*event]).unwrap();
         }
     }
 

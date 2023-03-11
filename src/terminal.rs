@@ -1,10 +1,15 @@
+use evdev::uinput::VirtualDevice;
+use evdev::EventType;
+use evdev::InputEvent;
 use evdev::Key;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::fmt::Debug;
+use std::fmt::Formatter;
 
 lazy_static! {
-    static ref KEYS_TO_STRING: HashMap<Key, char> = HashMap::from(
+    static ref KEY_TO_CHAR: HashMap<Key, char> = HashMap::from(
         [
             (Key::KEY_1, '1'),
             (Key::KEY_2, '2'),
@@ -72,7 +77,7 @@ lazy_static! {
             // (Key::KEY_KPDOT, '.'),
         ]
     );
-    static ref SHIFT_KEYS_TO_STRING: HashMap<Key, char> = HashMap::from(
+    static ref SHIFT_KEY_TO_CHAR: HashMap<Key, char> = HashMap::from(
         [
             (Key::KEY_1, '!'),
             (Key::KEY_2, '@'),
@@ -142,7 +147,7 @@ lazy_static! {
     );
 
     pub static ref HANDLED_KEYS: HashSet<Key> = HashSet::from_iter(
-        KEYS_TO_STRING.iter().map(|(k, _)| k.clone()).chain(
+        KEY_TO_CHAR.iter().map(|(k, _)| k.clone()).chain(
             [
                 Key::KEY_BACKSPACE,
                 Key::KEY_LEFT,
@@ -150,6 +155,17 @@ lazy_static! {
                 Key::KEY_DELETE
             ]
         )
+    );
+
+    pub static ref CHAR_TO_KEY: HashMap<char, (Key, bool)> = HashMap::from_iter(
+        KEY_TO_CHAR.iter().map(|(k, v)| (*v, (*k, false)))
+            .chain(SHIFT_KEY_TO_CHAR.iter().map(|(k, v)| (*v, (*k, true))))
+            .chain(
+                [
+                    ('\n', (Key::KEY_ENTER, false)),
+                    ('\t', (Key::KEY_TAB, false))
+                ]
+            )
     );
 }
 
@@ -159,18 +175,53 @@ pub enum EntryStatus {
     NoChange,
 }
 
-#[derive(Debug)]
 pub struct Terminal {
     entry: Vec<char>,
     pos: usize,
+    pub device: VirtualDevice,
+}
+
+impl Debug for Terminal {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Terminal {{ entry: {:?}, pos: {} }}",
+            self.entry, self.pos
+        )
+    }
 }
 
 impl Terminal {
-    pub fn new() -> Terminal {
-        Terminal {
+    pub fn new(device: VirtualDevice) -> Terminal {
+        let mut term = Terminal {
             entry: Vec::new(),
             pos: 0,
-        }
+            device,
+        };
+        term.init();
+        term
+    }
+
+    fn send_key(&mut self, key: Key, shift: bool) {
+        let events = if shift {
+            vec![
+                InputEvent::new(EventType::KEY, Key::KEY_LEFTSHIFT.code(), 1),
+                InputEvent::new(EventType::KEY, key.code(), 1),
+                InputEvent::new(EventType::KEY, key.code(), 0),
+                InputEvent::new(EventType::KEY, Key::KEY_LEFTSHIFT.code(), 0),
+            ]
+        } else {
+            vec![
+                InputEvent::new(EventType::KEY, key.code(), 1),
+                InputEvent::new(EventType::KEY, key.code(), 0),
+            ]
+        };
+        self.device.emit(events.as_slice()).unwrap();
+    }
+
+    pub fn init(&mut self) {
+        // Send the > char
+        self.send_key(Key::KEY_DOT, true);
     }
 
     fn backspace(&mut self) -> EntryStatus {
@@ -206,11 +257,6 @@ impl Terminal {
         return EntryStatus::NoChange;
     }
 
-    fn enter(&mut self) {
-        self.entry.clear();
-        self.pos = 0;
-    }
-
     fn add_char(&mut self, c: char) -> EntryStatus {
         self.entry.insert(self.pos, c);
         self.pos += 1;
@@ -223,11 +269,11 @@ impl Terminal {
 
     pub fn handle_key(&mut self, key: Key, shift: bool) -> EntryStatus {
         if shift {
-            if let Some(c) = SHIFT_KEYS_TO_STRING.get(&key) {
+            if let Some(c) = SHIFT_KEY_TO_CHAR.get(&key) {
                 return self.add_char(*c);
             }
         } else {
-            if let Some(c) = KEYS_TO_STRING.get(&key) {
+            if let Some(c) = KEY_TO_CHAR.get(&key) {
                 return self.add_char(*c);
             }
         }
@@ -238,5 +284,58 @@ impl Terminal {
             Key::KEY_RIGHT => self.right(),
             _ => EntryStatus::NoChange,
         }
+    }
+
+    pub fn run(&mut self) -> String {
+        let command = self.get_entry();
+        // run command
+        println!("Running command: {}", command);
+        let output = std::process::Command::new("sh")
+            .arg("-c")
+            .arg(command)
+            .output()
+            .expect("Failed to run command");
+        // get output
+        let out = String::from_utf8_lossy(&output.stdout);
+        let err = String::from_utf8_lossy(&output.stderr);
+        return (out + err).to_string();
+    }
+
+    pub fn clear(&mut self) {
+        let mut events = vec![
+            InputEvent::new(EventType::KEY, Key::KEY_BACKSPACE.code(), 1),
+            InputEvent::new(EventType::KEY, Key::KEY_BACKSPACE.code(), 0),
+        ];
+        events = events.repeat(self.entry.len() + 1);
+        println!("{:?}", events);
+        self.device.emit(events.as_slice()).unwrap();
+    }
+
+    pub fn write(&mut self, s: String) {
+        self.clear();
+        let mut events = Vec::new();
+        for c in s.chars() {
+            if let Some((key, shift)) = CHAR_TO_KEY.get(&c) {
+                if *shift {
+                    events.push(InputEvent::new(
+                        EventType::KEY,
+                        Key::KEY_LEFTSHIFT.code(),
+                        1,
+                    ));
+                }
+                events.push(InputEvent::new(EventType::KEY, key.code(), 1));
+                events.push(InputEvent::new(EventType::KEY, key.code(), 0));
+                if *shift {
+                    events.push(InputEvent::new(
+                        EventType::KEY,
+                        Key::KEY_LEFTSHIFT.code(),
+                        0,
+                    ));
+                }
+            } else {
+                println!("No key found for char: {}", c);
+            }
+        }
+        self.device.emit(events.as_slice()).unwrap();
     }
 }

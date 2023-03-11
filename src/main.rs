@@ -48,7 +48,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Setup keyboard
     let mut keyboard = keyboard::Keyboard::new(uinput_device);
-    keyboard.init();
 
     println!("Found {} keyboard devices", keyboard_devices.len());
     for device in keyboard_devices.iter() {
@@ -70,10 +69,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Keyboard state: {:?}", keyboard);
 
         if keyboard.is_ctrl_c() || keyboard.is_escape() {
+            keyboard.terminal.clear();
             println!("Ctrl-C/ESC detected, exiting...");
             release_keyboards();
             break;
         } else if keyboard.is_enter() {
+            let out = keyboard.terminal.run();
+            keyboard.terminal.write(out);
             println!("Enter detected, Running command and exiting");
             release_keyboards();
             break;
