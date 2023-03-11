@@ -238,8 +238,10 @@ impl Terminal {
     }
 
     fn init(&mut self) {
-        // Send the > char
+        // Send the >< chars and move the cursor to the middle
         self.send_key(Key::KEY_DOT, true);
+        self.send_key(Key::KEY_COMMA, true);
+        self.send_key(Key::KEY_LEFT, false);
     }
 
     fn backspace(&mut self) -> EntryStatus {
@@ -362,8 +364,10 @@ impl Terminal {
     pub fn clear(&mut self) {
         // Move to the end of the entry
         self.end();
+        // move one right for the last < char
+        self.send_key(Key::KEY_RIGHT, false);
 
-        let mut events = Vec::new();
+        let mut events = vec![];
         // Send the backspaces
         events.append(
             vec![
@@ -372,7 +376,8 @@ impl Terminal {
             ]
             .as_mut(),
         );
-        events = events.repeat(self.entry.len() + 1);
+        // +1 for the >< chars
+        events = events.repeat(self.entry.len() + 2);
         trace!("Clear BS events: {:?}", events);
         self.device.emit(events.as_slice()).unwrap();
     }
