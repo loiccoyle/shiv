@@ -26,20 +26,11 @@ fn evdev_modifier_to_enum(key: Key) -> Option<Modifier> {
     }
 }
 
+#[derive(Debug)]
 pub struct Keyboard {
     pub modifiers: HashSet<Modifier>,
     pub keysyms: AttributeSet<evdev::Key>,
     pub terminal: Terminal,
-}
-
-impl Debug for Keyboard {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Keyboard")
-            .field("modifiers", &self.modifiers)
-            .field("keysyms", &self.keysyms)
-            .field("terminal", &self.terminal)
-            .finish()
-    }
 }
 
 impl Keyboard {
