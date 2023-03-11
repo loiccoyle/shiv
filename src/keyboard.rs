@@ -103,7 +103,7 @@ impl Keyboard {
     pub fn is_shift(&self) -> bool {
         self.modifiers.contains(&Modifier::Shift)
     }
-    pub fn is_alt(&self) -> bool {
-        self.modifiers.contains(&Modifier::Alt)
-    }
+    // pub fn is_alt(&self) -> bool {
+    //     self.modifiers.contains(&Modifier::Alt)
+    // }
 }
