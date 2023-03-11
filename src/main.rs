@@ -2,16 +2,21 @@ use evdev::{Device, Key};
 use tokio;
 use tokio_stream::{StreamExt, StreamMap};
 
-mod uinput;
 mod keyboard;
 mod terminal;
+mod uinput;
 
 /// Determine if a device is a keyboard.
 fn check_device_is_keyboard(device: &Device) -> bool {
-    if device.supported_keys().map_or(false, |keys| keys.contains(Key::KEY_ENTER)) {
-        if device.name() == Some(uinput::UINPUT_DEVICE_NAME) || ! device.name().unwrap().to_lowercase().contains("keyboard") {
+    if device
+        .supported_keys()
+        .map_or(false, |keys| keys.contains(Key::KEY_ENTER))
+    {
+        if device.name() == Some(uinput::UINPUT_DEVICE_NAME)
+            || !device.name().unwrap().to_lowercase().contains("keyboard")
+        {
             return false;
-        } 
+        }
         true
     } else {
         false
@@ -33,10 +38,8 @@ fn release_keyboards() {
     });
 }
 
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-
     // setup uinput virtual device
     let uinput_device = uinput::create_uinput_device()?;
 
@@ -63,7 +66,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{:?} streams", stream_map.len());
 
     while let Some((_, Ok(event))) = stream_map.next().await {
-
         keyboard.handle_event(&event);
         // uinput_device.emit(&[event]).unwrap();
         println!("Keyboard state: {:?}", keyboard);
