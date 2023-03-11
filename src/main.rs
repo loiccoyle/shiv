@@ -1,6 +1,8 @@
 use evdev::{Device, Key};
 use tokio;
 use tokio_stream::{StreamExt, StreamMap};
+use log::{debug, error, log_enabled, info, Level};
+use env_logger::Env;
 
 mod keyboard;
 mod terminal;
@@ -40,6 +42,9 @@ fn release_keyboards() {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // env_logger::init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+
     // setup uinput virtual device
     let uinput_device = uinput::create_uinput_device()?;
 
@@ -52,9 +57,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Setup keyboard
     let mut keyboard = keyboard::Keyboard::new(uinput_device);
 
-    println!("Found {} keyboard devices", keyboard_devices.len());
+    info!("Found {} keyboard devices", keyboard_devices.len());
     for device in keyboard_devices.iter() {
-        println!("Device: {:?}", device.name());
+        debug!("Device: {:?}", device.name());
     }
     let mut stream_map = StreamMap::new();
 
@@ -62,23 +67,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let _ = device.grab();
         stream_map.insert(i, device.into_event_stream()?);
     }
-    println!("Listening for events...");
-    println!("{:?} streams", stream_map.len());
+    info!("Listening for events...");
+    debug!("{:?} streams", stream_map.len());
 
     while let Some((_, Ok(event))) = stream_map.next().await {
         keyboard.handle_event(&event);
         // uinput_device.emit(&[event]).unwrap();
-        println!("Keyboard state: {:?}", keyboard);
+        debug!("Keyboard state: {:?}", keyboard);
 
         if keyboard.is_ctrl_c() || keyboard.is_escape() {
             keyboard.terminal.clear();
-            println!("Ctrl-C/ESC detected, exiting...");
+            info!("Ctrl-C/ESC detected, exiting...");
             release_keyboards();
             break;
         } else if keyboard.is_enter() {
+            info!("Enter detected, Running command and writing");
             let out = keyboard.terminal.run();
             keyboard.terminal.write(out);
-            println!("Enter detected, Running command and exiting");
             release_keyboards();
             break;
         }

@@ -1,6 +1,7 @@
 use evdev::uinput::VirtualDevice;
 use evdev::AttributeSet;
 use evdev::Key;
+use log::{debug, info};
 use std::collections::HashSet;
 use std::fmt::Debug;
 
@@ -67,7 +68,7 @@ impl Keyboard {
         } else {
             match self.terminal.handle_key(key, self.is_shift()) {
                 EntryStatus::Change => {
-                    println!("Entry change");
+                    debug!("Entry change");
                     self.terminal.device.emit(&[*event]).unwrap();
                 }
                 EntryStatus::NoChange => {}
@@ -75,7 +76,7 @@ impl Keyboard {
             if event.value() == 1 {
                 self.keysyms.insert(key);
             } else if event.value() == 2 {
-                println!("Key repeat");
+                debug!("Key repeat");
             }
         }
     }

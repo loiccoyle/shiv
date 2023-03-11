@@ -3,6 +3,7 @@ use evdev::EventType;
 use evdev::InputEvent;
 use evdev::Key;
 use lazy_static::lazy_static;
+use log::{debug, info, warn};
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Debug;
@@ -289,7 +290,7 @@ impl Terminal {
     pub fn run(&mut self) -> String {
         let command = self.get_entry();
         // run command
-        println!("Running command: {}", command);
+        info!("Running command: {}", command);
         let output = std::process::Command::new("sh")
             .arg("-c")
             .arg(command)
@@ -307,7 +308,7 @@ impl Terminal {
             InputEvent::new(EventType::KEY, Key::KEY_BACKSPACE.code(), 0),
         ];
         events = events.repeat(self.entry.len() + 1);
-        println!("{:?}", events);
+        debug!("{:?}", events);
         self.device.emit(events.as_slice()).unwrap();
     }
 
@@ -333,7 +334,7 @@ impl Terminal {
                     ));
                 }
             } else {
-                println!("No key found for char: {}", c);
+                warn!("No key found for char: {}", c);
             }
         }
         self.device.emit(events.as_slice()).unwrap();
