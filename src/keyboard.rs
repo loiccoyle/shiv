@@ -1,7 +1,6 @@
 use evdev::uinput::VirtualDevice;
 use evdev::AttributeSet;
 use evdev::Key;
-use log::debug;
 use std::collections::HashSet;
 use std::fmt::Debug;
 
@@ -43,12 +42,18 @@ impl Keyboard {
     }
 
     pub fn handle_event(&mut self, event: &evdev::InputEvent) {
-        if let evdev::InputEventKind::Key(key) = event.kind() {
-            if let Some(modifier) = evdev_modifier_to_enum(key) {
-                self.update_modifiers(event, modifier);
-            } else {
-                self.update_keysyms(event, key);
+        match event.kind() {
+            evdev::InputEventKind::Key(key) => {
+                if let Some(modifier) = evdev_modifier_to_enum(key) {
+                    self.update_modifiers(event, modifier);
+                } else {
+                    self.update_keysyms(event, key);
+                }
             }
+            evdev::InputEventKind::Synchronization(_) => {
+                self.terminal.device.emit(&[*event]).unwrap()
+            }
+            _ => {}
         }
     }
 
@@ -60,8 +65,12 @@ impl Keyboard {
         } else {
             match self.terminal.handle_key(key, self.is_shift()) {
                 EntryStatus::Change => {
-                    debug!("Entry change");
-                    self.terminal.device.emit(&[*event]).unwrap();
+                    log::debug!("Entry change");
+                    log::info!("Emitting {:?}", event);
+                    // here we emit the event as a single key press regardless of if it was a held down
+                    // key or not. This is because we are not handling key repeats. And allows the
+                    // grabbed keyboard to decide the rates of the virtual device.
+                    self.terminal.send_key(key, self.is_shift())
                 }
                 EntryStatus::NoChange => {}
             }
@@ -70,7 +79,7 @@ impl Keyboard {
                 self.keysyms.insert(key);
             } else if event.value() == 2 {
                 // Key is repeated
-                debug!("Key repeat");
+                log::debug!("Key repeat");
             }
         }
     }

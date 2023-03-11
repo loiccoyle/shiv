@@ -3,11 +3,13 @@ use evdev::EventType;
 use evdev::InputEvent;
 use evdev::Key;
 use lazy_static::lazy_static;
-use log::{info, trace, warn};
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::fmt::Formatter;
+use subprocess::Popen;
+use subprocess::PopenConfig;
+use subprocess::Redirection;
 
 lazy_static! {
     static ref KEY_TO_CHAR: HashMap<Key, char> = HashMap::from(
@@ -220,7 +222,7 @@ impl Terminal {
     /// # Panics
     ///
     /// Panics if the events could not be emitted.
-    fn send_key(&mut self, key: Key, shift: bool) {
+    pub fn send_key(&mut self, key: Key, shift: bool) {
         let events = if shift {
             vec![
                 InputEvent::new(EventType::KEY, Key::KEY_LEFTSHIFT.code(), 1),
@@ -285,7 +287,7 @@ impl Terminal {
                 InputEvent::new(EventType::KEY, Key::KEY_LEFT.code(), 0),
             ]
             .repeat(n_lefts);
-            trace!("home left events: {:?}", left_events);
+            log::trace!("home left events: {:?}", left_events);
             self.device.emit(left_events.as_slice()).unwrap();
             self.pos = 0;
         }
@@ -300,7 +302,7 @@ impl Terminal {
                 InputEvent::new(EventType::KEY, Key::KEY_RIGHT.code(), 0),
             ]
             .repeat(n_rights);
-            trace!("end right events: {:?}", right_events);
+            log::trace!("end right events: {:?}", right_events);
             self.device.emit(right_events.as_slice()).unwrap();
             self.pos = self.entry.len();
         }
@@ -343,19 +345,28 @@ impl Terminal {
     }
 
     /// Run the command and return the stdout and stderr outputs.
-    pub fn run(&mut self) -> String {
+    pub fn run(&mut self, uid: Option<u32>) -> Result<String, Box<dyn std::error::Error>> {
         let command = self.get_entry();
-        // run command
-        info!("Running command: {}", command);
-        let output = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(command)
-            .output()
-            .expect("Failed to run command");
-        // get output
-        let out = String::from_utf8_lossy(&output.stdout);
-        let err = String::from_utf8_lossy(&output.stderr);
-        (out + err).to_string()
+
+        log::info!("Running command: {}", command);
+        let mut p = Popen::create(
+            &["sh", "-c", &command],
+            PopenConfig {
+                stdout: Redirection::Pipe,
+                stderr: Redirection::Pipe,
+                setuid: uid,
+                ..Default::default()
+            },
+        )?;
+
+        p.wait()?;
+        let (out, err) = p.communicate(None)?;
+
+        Ok(format!(
+            "{}{}",
+            out.unwrap_or("".into()),
+            err.unwrap_or("".into())
+        ))
     }
 
     /// Clear the text by sending backspaces
@@ -376,7 +387,7 @@ impl Terminal {
         );
         // +1 for the >< chars
         events = events.repeat(self.entry.len() + 2);
-        trace!("Clear BS events: {:?}", events);
+        log::trace!("Clear BS events: {:?}", events);
         self.device.emit(events.as_slice()).unwrap();
     }
 
@@ -408,10 +419,10 @@ impl Terminal {
                     ));
                 }
             } else {
-                warn!("No key found for char: {}", c);
+                log::warn!("No key found for char: {}", c);
             }
         }
-        trace!("Write events: {:?}", events);
+        log::trace!("Write events: {:?}", events);
         self.device.emit(events.as_slice()).unwrap();
     }
 }
