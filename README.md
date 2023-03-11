@@ -1,6 +1,6 @@
 # shiv
 
-## TODO:
+## ✔️ TODO:
 
 - [ ] add a cli
 - [ ] add tests
