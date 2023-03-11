@@ -1,11 +1,14 @@
 use nix::unistd::{Gid, Uid, User};
 use std::env;
 
+// Inspired by https://github.com/waycrate/swhkd/blob/main/swhkd/src/perms.rs
+
 #[link(name = "c")]
 extern "C" {
     fn geteuid() -> u32;
 }
 
+/// Get the UID of the caller.
 pub fn get_caller_uid() -> Result<u32, Box<dyn std::error::Error>> {
     unsafe {
         let mut uid = geteuid();
@@ -23,6 +26,11 @@ pub fn get_caller_uid() -> Result<u32, Box<dyn std::error::Error>> {
     }
 }
 
+/// Drop privileges to the given user.
+///
+/// # Arguments
+///
+/// * `user_uid` - The user to drop privileges to.
 pub fn drop_privileges(user_uid: u32) -> Result<(), Box<dyn std::error::Error>> {
     let user_uid = Uid::from_raw(user_uid);
     if let Some(user) = User::from_uid(user_uid)? {
