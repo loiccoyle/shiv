@@ -3,6 +3,21 @@ use evdev::{
     AttributeSet, Key,
 };
 
+use x11rb::protocol::xkb::{self, ConnectionExt};
+
+fn print_info(conn: &impl ConnectionExt) -> Result<(), Box<dyn std::error::Error>> {
+    /// @see https://github.com/psychon/x11rb/issues/648
+    let reply = conn
+        .xkb_get_controls(xkb::ID::USE_CORE_KBD.into())?
+        .reply()?;
+    println!("reply: {:?}", reply);
+    println!(
+        "{:?} delay, {:?} interval, per key: {:?}",
+        reply.repeat_delay, reply.repeat_interval, reply.per_key_repeat
+    );
+    Ok(())
+}
+
 pub const UINPUT_DEVICE_NAME: &str = "shiv virtual output";
 
 pub fn create_uinput_device() -> Result<VirtualDevice, Box<dyn std::error::Error>> {
