@@ -2,15 +2,21 @@
 name = "shiv"
 version = "0.1.0"
 edition = "2021"
+authors = ["Loic Coyle <loic.coyle@hotmail.fr>"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.release]
+opt-level='z'
+strip=true
+codegen-units = 1
+lto = true
 
 [dependencies]
-env_logger = "0.10.0"
+env_logger = {version="0.10.0", default-features=false, features=["auto-color", "humantime"]}
 evdev = {version="0.12.1", features=["tokio"]}
 lazy_static = "1.4.0"
 log = "0.4.17"
-tokio = {version="1.26.0", features=["full"]}
+tokio = {version="1.26.0", features=["macros", "rt-multi-thread"]}
 tokio-stream = "0.1.12"
 
 [[bin]]

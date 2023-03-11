@@ -193,12 +193,18 @@ impl Debug for Terminal {
 }
 
 impl Terminal {
+    /// Creates a new [`Terminal`].
+    ///
+    /// # Arguments
+    ///
+    /// * `device` - The [`VirtualDevice`] to use for sending events.
     pub fn new(device: VirtualDevice) -> Terminal {
         let mut term = Terminal {
             entry: Vec::new(),
             pos: 0,
             device,
         };
+        // Write the > char
         term.init();
         term
     }
@@ -220,7 +226,7 @@ impl Terminal {
         self.device.emit(events.as_slice()).unwrap();
     }
 
-    pub fn init(&mut self) {
+    fn init(&mut self) {
         // Send the > char
         self.send_key(Key::KEY_DOT, true);
     }
@@ -268,6 +274,12 @@ impl Terminal {
         self.entry.iter().collect()
     }
 
+    /// Handle a key event.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key that was pressed.
+    /// * `shift` - Whether the shift key was pressed.
     pub fn handle_key(&mut self, key: Key, shift: bool) -> EntryStatus {
         if shift {
             if let Some(c) = SHIFT_KEY_TO_CHAR.get(&key) {
@@ -287,6 +299,7 @@ impl Terminal {
         }
     }
 
+    /// Run the command and return the output.
     pub fn run(&mut self) -> String {
         let command = self.get_entry();
         // run command
@@ -302,20 +315,27 @@ impl Terminal {
         return (out + err).to_string();
     }
 
+    /// Clear the text by sending backspaces
     pub fn clear(&mut self) {
         let mut events = vec![
             InputEvent::new(EventType::KEY, Key::KEY_BACKSPACE.code(), 1),
             InputEvent::new(EventType::KEY, Key::KEY_BACKSPACE.code(), 0),
         ];
+        // the + 1 is for the >
         events = events.repeat(self.entry.len() + 1);
         debug!("{:?}", events);
         self.device.emit(events.as_slice()).unwrap();
     }
 
-    pub fn write(&mut self, s: String) {
+    /// Write the command output through the virtual device by sending the right keys.
+    ///
+    /// # Arguments
+    ///
+    /// * `contents`: The contents of the command output.
+    pub fn write(&mut self, contents: String) {
         self.clear();
         let mut events = Vec::new();
-        for c in s.chars() {
+        for c in contents.chars() {
             if let Some((key, shift)) = CHAR_TO_KEY.get(&c) {
                 if *shift {
                     events.push(InputEvent::new(

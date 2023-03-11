@@ -1,7 +1,7 @@
 use evdev::{Device, Key};
 use tokio;
 use tokio_stream::{StreamExt, StreamMap};
-use log::{debug, error, log_enabled, info, Level};
+use log::{debug, info};
 use env_logger::Env;
 
 mod keyboard;

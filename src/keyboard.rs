@@ -1,7 +1,7 @@
 use evdev::uinput::VirtualDevice;
 use evdev::AttributeSet;
 use evdev::Key;
-use log::{debug, info};
+use log::debug;
 use std::collections::HashSet;
 use std::fmt::Debug;
 
