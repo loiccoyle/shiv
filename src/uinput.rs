@@ -6,7 +6,7 @@ use evdev::{
 use x11rb::protocol::xkb::{self, ConnectionExt};
 
 fn print_info(conn: &impl ConnectionExt) -> Result<(), Box<dyn std::error::Error>> {
-    /// @see https://github.com/psychon/x11rb/issues/648
+    // @see https://github.com/psychon/x11rb/issues/648
     let reply = conn
         .xkb_get_controls(xkb::ID::USE_CORE_KBD.into())?
         .reply()?;

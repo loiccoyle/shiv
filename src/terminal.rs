@@ -148,7 +148,7 @@ lazy_static! {
     );
 
     pub static ref HANDLED_KEYS: HashSet<Key> = HashSet::from_iter(
-        KEY_TO_CHAR.iter().map(|(k, _)| k.clone()).chain(
+        KEY_TO_CHAR.iter().map(|(k, _)| *k).chain(
             [
                 Key::KEY_BACKSPACE,
                 Key::KEY_LEFT,
@@ -250,7 +250,7 @@ impl Terminal {
             self.entry.remove(self.pos);
             return EntryStatus::Change;
         }
-        return EntryStatus::NoChange;
+        EntryStatus::NoChange
     }
 
     fn delete(&mut self) -> EntryStatus {
@@ -258,7 +258,7 @@ impl Terminal {
             self.entry.remove(self.pos);
             return EntryStatus::Change;
         }
-        return EntryStatus::NoChange;
+        EntryStatus::NoChange
     }
 
     fn left(&mut self) -> EntryStatus {
@@ -266,7 +266,7 @@ impl Terminal {
             self.pos -= 1;
             return EntryStatus::Change;
         }
-        return EntryStatus::NoChange;
+        EntryStatus::NoChange
     }
 
     fn right(&mut self) -> EntryStatus {
@@ -274,7 +274,7 @@ impl Terminal {
             self.pos += 1;
             return EntryStatus::Change;
         }
-        return EntryStatus::NoChange;
+        EntryStatus::NoChange
     }
 
     fn home(&mut self) -> EntryStatus {
@@ -289,7 +289,7 @@ impl Terminal {
             self.device.emit(left_events.as_slice()).unwrap();
             self.pos = 0;
         }
-        return EntryStatus::NoChange;
+        EntryStatus::NoChange
     }
 
     fn end(&mut self) -> EntryStatus {
@@ -304,13 +304,13 @@ impl Terminal {
             self.device.emit(right_events.as_slice()).unwrap();
             self.pos = self.entry.len();
         }
-        return EntryStatus::NoChange;
+        EntryStatus::NoChange
     }
 
     fn add_char(&mut self, c: char) -> EntryStatus {
         self.entry.insert(self.pos, c);
         self.pos += 1;
-        return EntryStatus::Change;
+        EntryStatus::Change
     }
 
     fn get_entry(&self) -> String {
@@ -328,10 +328,8 @@ impl Terminal {
             if let Some(c) = SHIFT_KEY_TO_CHAR.get(&key) {
                 return self.add_char(*c);
             }
-        } else {
-            if let Some(c) = KEY_TO_CHAR.get(&key) {
-                return self.add_char(*c);
-            }
+        } else if let Some(c) = KEY_TO_CHAR.get(&key) {
+            return self.add_char(*c);
         }
         match key {
             Key::KEY_BACKSPACE => self.backspace(),
@@ -357,7 +355,7 @@ impl Terminal {
         // get output
         let out = String::from_utf8_lossy(&output.stdout);
         let err = String::from_utf8_lossy(&output.stderr);
-        return (out + err).to_string();
+        (out + err).to_string()
     }
 
     /// Clear the text by sending backspaces

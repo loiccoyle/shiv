@@ -1,5 +1,4 @@
 use evdev::{Device, Key};
-use tokio;
 use tokio_stream::{StreamExt, StreamMap};
 use log::{trace, debug, info};
 use env_logger::Env;
