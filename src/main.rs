@@ -46,7 +46,7 @@ fn release_keyboards() {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // env_logger::init();
-    env_logger::Builder::from_env(Env::default().default_filter_or("log::info")).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     let uid = permissions::get_caller_uid()?;
     log::info!("Caller UID: {}", uid);
