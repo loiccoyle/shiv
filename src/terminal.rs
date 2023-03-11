@@ -3,7 +3,7 @@ use evdev::EventType;
 use evdev::InputEvent;
 use evdev::Key;
 use lazy_static::lazy_static;
-use log::{debug, info, warn};
+use log::{info, trace, warn};
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Debug;
@@ -209,6 +209,15 @@ impl Terminal {
         term
     }
 
+    /// Sends a key event.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The [`Key`] to send.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the events could not be emitted.
     fn send_key(&mut self, key: Key, shift: bool) {
         let events = if shift {
             vec![
@@ -278,7 +287,7 @@ impl Terminal {
     ///
     /// # Arguments
     ///
-    /// * `key` - The key that was pressed.
+    /// * `key` - The [`Key`] that was pressed.
     /// * `shift` - Whether the shift key was pressed.
     pub fn handle_key(&mut self, key: Key, shift: bool) -> EntryStatus {
         if shift {
@@ -299,7 +308,7 @@ impl Terminal {
         }
     }
 
-    /// Run the command and return the output.
+    /// Run the command and return the stdout and stderr outputs.
     pub fn run(&mut self) -> String {
         let command = self.get_entry();
         // run command
@@ -323,11 +332,12 @@ impl Terminal {
         ];
         // the + 1 is for the >
         events = events.repeat(self.entry.len() + 1);
-        debug!("{:?}", events);
+        trace!("Clear events: {:?}", events);
         self.device.emit(events.as_slice()).unwrap();
     }
 
-    /// Write the command output through the virtual device by sending the right keys.
+    /// Write the command output through the virtual device by sending the right key
+    /// events.
     ///
     /// # Arguments
     ///
@@ -357,6 +367,7 @@ impl Terminal {
                 warn!("No key found for char: {}", c);
             }
         }
+        trace!("Write events: {:?}", events);
         self.device.emit(events.as_slice()).unwrap();
     }
 }

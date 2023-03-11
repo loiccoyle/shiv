@@ -1,7 +1,7 @@
 use evdev::{Device, Key};
 use tokio;
 use tokio_stream::{StreamExt, StreamMap};
-use log::{debug, info};
+use log::{trace, debug, info};
 use env_logger::Env;
 
 mod keyboard;
@@ -47,7 +47,7 @@ fn release_keyboards() {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // env_logger::init();
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("debug")).init();
 
     // setup uinput virtual device
     let uinput_device = uinput::create_uinput_device()?;
@@ -82,7 +82,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // The terminal class keeps track of the inputs and decides wether
         // to pass it to the virtual device or not
         keyboard.handle_event(&event);
-        debug!("Keyboard state: {:?}", keyboard);
+        trace!("Keyboard state: {:?}", keyboard);
 
         if keyboard.is_ctrl_c() || keyboard.is_escape() {
             keyboard.terminal.clear();
