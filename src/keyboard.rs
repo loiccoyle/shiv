@@ -75,8 +75,7 @@ impl Keyboard {
         } else {
             match self.terminal.handle_key(key, self.is_shift()) {
                 EventFlag::Emit => {
-                    log::debug!("Entry change");
-                    log::info!("Emitting {:?}", event);
+                    log::debug!("Emitting {:?}", event);
                     // here we emit the event as a single key press regardless of if it was a held down
                     // key or not. This is because we are not handling key repeats. And allows the
                     // grabbed keyboard to decide the rates of the virtual device.
