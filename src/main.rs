@@ -22,8 +22,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     log::debug!("Caller UID: {}", uid);
 
     // setup uinput virtual device
-    let uinput_device = uinput::create_uinput_device()?;
-
+    let uinput_device = match uinput::create_uinput_device() {
+        Ok(device) => device,
+        Err(err) => {
+            log::error!("Failed to create uinput device: {}", err);
+            std::process::exit(1);
+        }
+    };
     // fetch keyboards
     let keyboard_devices: Vec<Device> = evdev::enumerate()
         .map(|(_, device)| device)
@@ -45,8 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let terminal_config = terminal::TerminalConfig { pre_cmd };
     let mut keyboard = keyboard::Keyboard::new(uinput_device, terminal_config.into());
 
-    log::info!("Listening for events...");
-
+    log::info!("Listening for keyboard events...");
     // Event loop
     while let Some((_, Ok(event))) = stream_map.next().await {
         // Event is passed to the keyboard class
