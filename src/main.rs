@@ -51,6 +51,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut keyboard = keyboard::Keyboard::new(uinput_device, terminal_config.into());
 
     log::info!("Listening for keyboard events...");
+    log::info!("Ctrl-C/ESC to exit");
     // Event loop
     while let Some((_, Ok(event))) = stream_map.next().await {
         // Event is passed to the keyboard class

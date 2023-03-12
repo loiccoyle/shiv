@@ -30,20 +30,25 @@ impl LogLevel for Level {
 #[clap(author = "Loic Coyle")]
 #[command(
     version,
-    after_help = "Note: This program requires priviledges to create and access keyboard devices.",
+    after_help = "Note: shiv requires priviledges to create and access keyboard devices.",
     verbatim_doc_comment
 )]
 /// Shiv: shell access everywhere.
 ///
+/// Shiv allows you to run shell commands from any text box.
+/// When started, it listens for keyboard inputs, on Enter it will run the command and write the output.
+///
+/// The recommended way to use shiv is to bind it to a key combination.
+///
 /// Examples:
 ///   • On demand python shell:
 ///     $ shiv "python -c"
-///
 ///   • Query ChatGPT:
 ///     $ shiv "sgpt"
-///
 ///   • On demand calculator and consersions:
 ///     $ shiv "qalc -t"
+///   • ASCII art:
+///     $ shiv "figlet"
 pub struct Arguments {
     /// Prefix input with this command
     #[clap(value_parser=validate_shell_cmd, default_value = "bash -c")]
