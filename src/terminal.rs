@@ -173,11 +173,11 @@ lazy_static! {
 }
 
 /// Used to determine if an event changed the entry.
-pub enum EntryStatus {
+pub enum EventFlag {
     /// Send the event to the device.
-    Change,
+    Emit,
     /// Don't send the event to the device.
-    NoChange,
+    Block,
 }
 
 pub struct Terminal {
@@ -246,40 +246,40 @@ impl Terminal {
         self.send_key(Key::KEY_LEFT, false);
     }
 
-    fn backspace(&mut self) -> EntryStatus {
+    fn backspace(&mut self) -> EventFlag {
         if self.pos > 0 {
             self.pos -= 1;
             self.entry.remove(self.pos);
-            return EntryStatus::Change;
+            return EventFlag::Emit;
         }
-        EntryStatus::NoChange
+        EventFlag::Block
     }
 
-    fn delete(&mut self) -> EntryStatus {
+    fn delete(&mut self) -> EventFlag {
         if self.pos < self.entry.len() {
             self.entry.remove(self.pos);
-            return EntryStatus::Change;
+            return EventFlag::Emit;
         }
-        EntryStatus::NoChange
+        EventFlag::Block
     }
 
-    fn left(&mut self) -> EntryStatus {
+    fn left(&mut self) -> EventFlag {
         if self.pos > 0 {
             self.pos -= 1;
-            return EntryStatus::Change;
+            return EventFlag::Emit;
         }
-        EntryStatus::NoChange
+        EventFlag::Block
     }
 
-    fn right(&mut self) -> EntryStatus {
+    fn right(&mut self) -> EventFlag {
         if self.pos < self.entry.len() {
             self.pos += 1;
-            return EntryStatus::Change;
+            return EventFlag::Emit;
         }
-        EntryStatus::NoChange
+        EventFlag::Block
     }
 
-    fn home(&mut self) -> EntryStatus {
+    fn home(&mut self) -> EventFlag {
         if self.pos > 0 {
             let n_lefts = self.pos;
             let left_events = [
@@ -291,10 +291,10 @@ impl Terminal {
             self.device.emit(left_events.as_slice()).unwrap();
             self.pos = 0;
         }
-        EntryStatus::NoChange
+        EventFlag::Block
     }
 
-    fn end(&mut self) -> EntryStatus {
+    fn end(&mut self) -> EventFlag {
         if self.pos < self.entry.len() {
             let n_rights = self.entry.len() - self.pos;
             let right_events = [
@@ -306,13 +306,13 @@ impl Terminal {
             self.device.emit(right_events.as_slice()).unwrap();
             self.pos = self.entry.len();
         }
-        EntryStatus::NoChange
+        EventFlag::Block
     }
 
-    fn add_char(&mut self, c: char) -> EntryStatus {
+    fn add_char(&mut self, c: char) -> EventFlag {
         self.entry.insert(self.pos, c);
         self.pos += 1;
-        EntryStatus::Change
+        EventFlag::Emit
     }
 
     fn get_entry(&self) -> String {
@@ -325,7 +325,7 @@ impl Terminal {
     ///
     /// * `key` - The [`Key`] that was pressed.
     /// * `shift` - Whether the shift key was pressed.
-    pub fn handle_key(&mut self, key: Key, shift: bool) -> EntryStatus {
+    pub fn handle_key(&mut self, key: Key, shift: bool) -> EventFlag {
         if shift {
             if let Some(c) = SHIFT_KEY_TO_CHAR.get(&key) {
                 return self.add_char(*c);
@@ -340,7 +340,7 @@ impl Terminal {
             Key::KEY_RIGHT => self.right(),
             Key::KEY_END => self.end(),
             Key::KEY_HOME => self.home(),
-            _ => EntryStatus::NoChange,
+            _ => EventFlag::Block,
         }
     }
 

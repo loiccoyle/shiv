@@ -4,7 +4,7 @@ use evdev::Key;
 use std::collections::HashSet;
 use std::fmt::Debug;
 
-use crate::terminal::EntryStatus;
+use crate::terminal::EventFlag;
 use crate::terminal::Terminal;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
@@ -64,7 +64,7 @@ impl Keyboard {
             self.terminal.device.emit(&[*event]).unwrap();
         } else {
             match self.terminal.handle_key(key, self.is_shift()) {
-                EntryStatus::Change => {
+                EventFlag::Emit => {
                     log::debug!("Entry change");
                     log::info!("Emitting {:?}", event);
                     // here we emit the event as a single key press regardless of if it was a held down
@@ -72,7 +72,7 @@ impl Keyboard {
                     // grabbed keyboard to decide the rates of the virtual device.
                     self.terminal.send_key(key, self.is_shift())
                 }
-                EntryStatus::NoChange => {}
+                EventFlag::Block => {}
             }
             if event.value() == 1 {
                 // Key is pressed
