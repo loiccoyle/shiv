@@ -46,7 +46,7 @@ impl LogLevel for Level {
 ///     $ shiv "qalc -t"
 pub struct Arguments {
     /// Prefix input with this command
-    #[clap(default_value = "bash -c")]
+    #[clap(value_parser=validate_shell_cmd, default_value = "bash -c")]
     pub pre_cmd: String,
 
     #[command(flatten)]
