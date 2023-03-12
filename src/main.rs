@@ -1,5 +1,4 @@
 use clap::Parser;
-use env_logger::Env;
 use evdev::Device;
 use tokio_stream::{StreamExt, StreamMap};
 
@@ -13,14 +12,14 @@ mod utils;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = cli::Arguments::parse();
+    env_logger::Builder::new().filter_level(args.verbose.log_level_filter()).init();
     log::debug!("args: {:?}", args);
+
     let pre_cmd = shlex::split(&args.pre_cmd).ok_or("Failed to parse command")?;
 
-    // env_logger::init();
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     let uid = permissions::get_caller_uid()?;
-    log::info!("Caller UID: {}", uid);
+    log::debug!("Caller UID: {}", uid);
 
     // setup uinput virtual device
     let uinput_device = uinput::create_uinput_device()?;
@@ -67,7 +66,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 log::error!("Failed to drop privileges: {}", e);
                 keyboard.terminal.clear();
             };
-            log::info!("Dropped privileges");
+            log::debug!("Dropped privileges");
             let out = keyboard.terminal.run(uid);
             match out {
                 Ok(out) => {

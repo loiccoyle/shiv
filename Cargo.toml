@@ -13,6 +13,7 @@ lto = true
 
 [dependencies]
 clap = { version = "4.1.8", features = ["derive"] }
+clap-verbosity-flag = "2.0.0"
 env_logger = {version="0.10.0", default-features=false, features=["auto-color", "humantime"]}
 evdev = {version="0.12.1", features=["tokio"]}
 lazy_static = "1.4.0"
