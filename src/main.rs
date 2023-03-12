@@ -89,7 +89,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if keyboard.is_ctrl_c() || keyboard.is_escape() {
             keyboard.terminal.clear();
             log::info!("Ctrl-C/ESC detected, exiting...");
-            release_keyboards();
             break;
         } else if keyboard.is_enter() {
             log::info!("Enter detected, Running command and typing output...");
@@ -107,10 +106,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     keyboard.terminal.write(format!("Command failed: {}", e));
                 }
             }
-            release_keyboards();
             break;
         }
     }
-
+    release_keyboards();
     Ok(())
 }
