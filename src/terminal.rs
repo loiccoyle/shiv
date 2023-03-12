@@ -178,7 +178,9 @@ pub enum EventFlag {
 }
 
 #[derive(Debug, Clone)]
+/// Control the [`Terminal`]'s behavior.
 pub struct TerminalConfig {
+    /// Command to which the user input is used as argument.
     pub pre_cmd: Vec<String>,
 }
 
