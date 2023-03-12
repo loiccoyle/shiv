@@ -179,16 +179,24 @@ pub enum EventFlag {
 }
 
 #[derive(Debug, Clone)]
+pub enum OutputMethod {
+    Paste,
+    Type,
+}
+
+#[derive(Debug, Clone)]
 /// Control the [`Terminal`]'s behavior.
 pub struct TerminalConfig {
     /// Command to which the user input is used as argument.
     pub pre_cmd: Vec<String>,
+    pub output_method: OutputMethod,
 }
 
 impl Default for TerminalConfig {
     fn default() -> Self {
         Self {
             pre_cmd: vec!["bash".to_string(), "-c".to_string()],
+            output_method: OutputMethod::Paste,
         }
     }
 }
@@ -406,13 +414,26 @@ impl Terminal {
         self.device.emit(events.as_slice()).unwrap();
     }
 
-    /// Write the command output through the virtual device by sending the right key events.
+    /// Write the command output.
     ///
     /// # Arguments
     ///
     /// * `contents`: The contents of the command output.
     pub fn write(&mut self, contents: String) {
+        log::debug!("Writing contents: {}", contents);
         self.clear();
+        match self.config.output_method {
+            OutputMethod::Type => self.write_type(contents),
+            OutputMethod::Paste => self.write_paste(contents),
+        }
+    }
+
+    /// Write the command output through the virtual device by sending the right key events.
+    ///
+    /// # Arguments
+    ///
+    /// * `contents`: The contents of the command output.
+    pub fn write_type(&mut self, contents: String) {
         let mut events = Vec::new();
         for c in contents.chars() {
             if let Some((key, shift)) = CHAR_TO_KEY.get(&c) {
@@ -438,5 +459,26 @@ impl Terminal {
         }
         log::trace!("Write events: {:?}", events);
         self.device.emit(events.as_slice()).unwrap();
+    }
+
+    /// Write the command output through the clipboard.
+    ///
+    /// # Arguments
+    ///
+    /// * `contents`: The contents of the command output.
+    fn write_paste(&mut self, contents: String) {
+        let mut clipboard = arboard::Clipboard::new().unwrap();
+        let cp_data = clipboard.get_text().ok();
+        log::debug!("Clipboard data: {:?}", cp_data);
+        clipboard.set_text(contents).unwrap();
+        // Paste the contents
+        self.send_key(Key::KEY_PASTE, false);
+        // We need to wait for the key to register before resetting the clipboard
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        if let Some(data) = cp_data {
+            log::debug!("Resetting clipboard to: {}", data);
+            // Reset the clipboard
+            clipboard.set_text(data).unwrap();
+        }
     }
 }

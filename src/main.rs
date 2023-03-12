@@ -12,11 +12,12 @@ mod utils;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = cli::Arguments::parse();
-    env_logger::Builder::new().filter_level(args.verbose.log_level_filter()).init();
+    env_logger::Builder::new()
+        .filter_level(args.verbose.log_level_filter())
+        .init();
     log::debug!("args: {:?}", args);
 
     let pre_cmd = shlex::split(&args.pre_cmd).ok_or("Failed to parse command")?;
-
 
     let uid = permissions::get_caller_uid()?;
     log::debug!("Caller UID: {}", uid);
@@ -47,7 +48,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         stream_map.insert(i, device.into_event_stream()?);
     }
     // Setup keyboard
-    let terminal_config = terminal::TerminalConfig { pre_cmd };
+    let terminal_config = terminal::TerminalConfig {
+        pre_cmd,
+        output_method: if args.type_output {
+            terminal::OutputMethod::Type
+        } else {
+            terminal::OutputMethod::Paste
+        },
+    };
     let mut keyboard = keyboard::Keyboard::new(uinput_device, terminal_config.into());
 
     log::info!("Listening for keyboard events...");

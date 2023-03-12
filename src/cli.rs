@@ -54,6 +54,10 @@ pub struct Arguments {
     #[clap(value_parser=validate_shell_cmd, default_value = "bash -c")]
     pub pre_cmd: String,
 
+    /// Type out the command output instead of pasting it
+    #[clap(short = 'T', long)]
+    pub type_output: bool,
+
     #[command(flatten)]
     pub verbose: Verbosity<Level>,
 }
