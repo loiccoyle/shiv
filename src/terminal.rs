@@ -157,6 +157,7 @@ lazy_static! {
         )
     );
 
+    // This map could maybe use phf construct it at compile time
     pub static ref CHAR_TO_KEY: HashMap<char, (Key, bool)> = HashMap::from_iter(
         KEY_TO_CHAR.iter().map(|(k, v)| (*v, (*k, false)))
             .chain(SHIFT_KEY_TO_CHAR.iter().map(|(k, v)| (*v, (*k, true))))
@@ -375,6 +376,7 @@ impl Terminal {
             .args(&self.config.pre_cmd)
             .arg(self.get_entry());
         log::info!("Running command: {:?}", &command);
+        // FIXME: This can block if the command runs forewer, use a separate thread with a timeout.
         let output = command.output()?;
 
         let out = String::from_utf8_lossy(&output.stdout);
