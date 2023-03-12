@@ -16,27 +16,24 @@ impl LogLevel for Level {
     fn default() -> Option<log::Level> {
         Some(log::Level::Info)
     }
+
     fn verbose_help() -> Option<&'static str> {
         Some("Increase verbosity")
-    }
-
-    fn verbose_long_help() -> Option<&'static str> {
-        None
     }
 
     fn quiet_help() -> Option<&'static str> {
         Some("Decrease verbosity")
     }
-
-    fn quiet_long_help() -> Option<&'static str> {
-        None
-    }
 }
 
 #[derive(Parser, Debug)]
 #[clap(author = "Loic Coyle")]
-#[command(version, about, long_about)]
+#[command(
+    version,
+    after_help = "Note: This program requires priviledges to create and access keyboard devices."
+)]
 /// Shiv: shell access everywhere.
+///
 ///
 /// Examples:
 ///
@@ -45,6 +42,9 @@ impl LogLevel for Level {
 ///
 /// * Query GPT:
 /// $ shiv -p "sgpt"
+///
+/// * On demand calculator and consersions:
+/// $ shiv -p "qalc -t"
 pub struct Arguments {
     /// Prefix input with this command
     #[clap(short = 'p', long, value_parser=validate_shell_cmd, default_value="bash -c")]
