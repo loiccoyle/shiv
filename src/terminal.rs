@@ -172,7 +172,7 @@ lazy_static! {
     );
 }
 
-/// Used to determine if an event changed the entry.
+/// Used to signal if the event should be blocked or passed through to the virtual device.
 pub enum EventFlag {
     /// Send the event to the device.
     Emit,
@@ -180,6 +180,9 @@ pub enum EventFlag {
     Block,
 }
 
+/// Reprents the emulated terminal the user is typing into.
+/// It keeps track of their inputs, controls the flow of events to the virtual device, constructs
+/// the command string, runs it and types back the output.
 pub struct Terminal {
     entry: Vec<char>,
     pos: usize,
@@ -297,6 +300,7 @@ impl Terminal {
             self.device.emit(left_events.as_slice()).unwrap();
             self.pos = 0;
         }
+        // always block the event as we emulate the home by typing a bunch of left arrows
         EventFlag::Block
     }
 
@@ -312,6 +316,7 @@ impl Terminal {
             self.device.emit(right_events.as_slice()).unwrap();
             self.pos = self.entry.len();
         }
+        // always block the event as we emulate the end by typing a bunch of right arrows
         EventFlag::Block
     }
 
@@ -391,14 +396,13 @@ impl Terminal {
             ]
             .as_mut(),
         );
-        // +1 for the >< chars
+        // +2 for the >< chars
         events = events.repeat(self.entry.len() + 2);
         log::trace!("Clear BS events: {:?}", events);
         self.device.emit(events.as_slice()).unwrap();
     }
 
-    /// Write the command output through the virtual device by sending the right key
-    /// events.
+    /// Write the command output through the virtual device by sending the right key events.
     ///
     /// # Arguments
     ///

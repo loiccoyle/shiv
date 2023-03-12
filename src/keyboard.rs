@@ -26,6 +26,11 @@ fn evdev_modifier_to_enum(key: Key) -> Option<Modifier> {
 }
 
 #[derive(Debug)]
+/// Keyboard state.
+/// Keeps track of the current state of the keyboard's keys and modifiers.
+///
+/// It feeds key events to the underlying [`Terminal`] and, if flagged, emits the events to the
+/// terminal's virtual device.
 pub struct Keyboard {
     pub modifiers: HashSet<Modifier>,
     pub keysyms: AttributeSet<evdev::Key>,
@@ -33,6 +38,11 @@ pub struct Keyboard {
 }
 
 impl Keyboard {
+    /// Create a new [`Keyboard`].
+    ///
+    /// # Arguments
+    ///
+    /// * `device` - The virtual device to emit events to.
     pub fn new(device: VirtualDevice) -> Keyboard {
         Keyboard {
             modifiers: HashSet::new(),
