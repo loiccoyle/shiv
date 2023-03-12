@@ -30,24 +30,23 @@ impl LogLevel for Level {
 #[clap(author = "Loic Coyle")]
 #[command(
     version,
-    after_help = "Note: This program requires priviledges to create and access keyboard devices."
+    after_help = "Note: This program requires priviledges to create and access keyboard devices.",
+    verbatim_doc_comment
 )]
 /// Shiv: shell access everywhere.
 ///
-///
 /// Examples:
+///   • On demand python shell:
+///     $ shiv "python -c"
 ///
-/// * On demand python shell:
-/// $ shiv -p "python -c"
+///   • Query ChatGPT:
+///     $ shiv "sgpt"
 ///
-/// * Query GPT:
-/// $ shiv -p "sgpt"
-///
-/// * On demand calculator and consersions:
-/// $ shiv -p "qalc -t"
+///   • On demand calculator and consersions:
+///     $ shiv "qalc -t"
 pub struct Arguments {
     /// Prefix input with this command
-    #[clap(short = 'p', long, value_parser=validate_shell_cmd, default_value="bash -c")]
+    #[clap(default_value = "bash -c")]
     pub pre_cmd: String,
 
     #[command(flatten)]
