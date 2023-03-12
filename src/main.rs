@@ -57,7 +57,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             break;
         } else if keyboard.is_enter() {
             log::info!("Enter detected, Running command and typing output...");
-            permissions::drop_privileges(uid)?;
+            if let Err(e) = permissions::drop_privileges(uid) {
+                log::error!("Failed to drop privileges: {}", e);
+                keyboard.terminal.clear();
+            };
             log::info!("Dropped privileges");
             let out = keyboard.terminal.run(uid.into());
             match out {

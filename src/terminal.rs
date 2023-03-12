@@ -199,12 +199,6 @@ impl Debug for Terminal {
     }
 }
 
-impl Drop for Terminal {
-    fn drop(&mut self) {
-        self.clear()
-    }
-}
-
 impl Terminal {
     /// Creates a new [`Terminal`].
     ///
