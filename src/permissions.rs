@@ -36,7 +36,7 @@ pub fn drop_privileges(user_uid: u32) -> Result<(), Box<dyn std::error::Error>> 
     if let Some(user) = User::from_uid(user_uid)? {
         set_initgroups(&user, user_uid.as_raw())?;
         set_egid(user_uid.as_raw())?;
-        // set_euid(user_uid.as_raw())?;
+        set_euid(user_uid.as_raw())?;
         Ok(())
     } else {
         Err("Failed to get user".into())
