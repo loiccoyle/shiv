@@ -2,7 +2,7 @@
 
 ## ✔️ TODO:
 
-- [ ] add a cli
+- [x] add a cli
 - [ ] add tests
 - [ ] add ci
 - [ ] look into better permission handling
