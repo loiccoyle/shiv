@@ -61,7 +61,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
 
 
-    log::info!("Found {} keyboard devices", keyboard_devices.len());
+    log::info!("Found {} keyboards", keyboard_devices.len());
     for device in keyboard_devices.iter() {
         log::debug!("Device: {:?}", device.name());
     }
@@ -76,7 +76,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut keyboard = keyboard::Keyboard::new(uinput_device);
     
     log::info!("Listening for events...");
-    log::debug!("{:?} streams", stream_map.len());
 
     // Event loop
     while let Some((_, Ok(event))) = stream_map.next().await {
