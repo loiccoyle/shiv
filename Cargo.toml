@@ -12,12 +12,13 @@ codegen-units = 1
 lto = true
 
 [dependencies]
+clap = { version = "4.1.8", features = ["derive"] }
 env_logger = {version="0.10.0", default-features=false, features=["auto-color", "humantime"]}
 evdev = {version="0.12.1", features=["tokio"]}
 lazy_static = "1.4.0"
 log = "0.4.17"
 nix = "0.26.2"
-subprocess = "0.2.9"
+shlex = "1.1.0"
 tokio = {version="1.26.0", features=["macros", "rt-multi-thread"]}
 tokio-stream = "0.1.12"
 x11rb = { version = "0.11.1", features = ["xkb"] }

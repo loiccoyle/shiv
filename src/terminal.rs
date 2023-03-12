@@ -7,9 +7,6 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::fmt::Formatter;
-use subprocess::Popen;
-use subprocess::PopenConfig;
-use subprocess::Redirection;
 
 lazy_static! {
     static ref KEY_TO_CHAR: HashMap<Key, char> = HashMap::from(
@@ -180,6 +177,19 @@ pub enum EventFlag {
     Block,
 }
 
+#[derive(Debug, Clone)]
+pub struct TerminalConfig {
+    pub pre_cmd: Vec<String>,
+}
+
+impl Default for TerminalConfig {
+    fn default() -> Self {
+        Self {
+            pre_cmd: vec!["bash".to_string(), "-c".to_string()],
+        }
+    }
+}
+
 /// Reprents the emulated terminal the user is typing into.
 /// It keeps track of their inputs, controls the flow of events to the virtual device, constructs
 /// the command string, runs it and types back the output.
@@ -187,14 +197,15 @@ pub struct Terminal {
     entry: Vec<char>,
     pos: usize,
     pub device: VirtualDevice,
+    config: TerminalConfig,
 }
 
 impl Debug for Terminal {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Terminal {{ entry: {:?}, pos: {} }}",
-            self.entry, self.pos
+            "Terminal {{ entry: {:?}, pos: {}, config: {:?} }}",
+            self.entry, self.pos, self.config
         )
     }
 }
@@ -205,11 +216,12 @@ impl Terminal {
     /// # Arguments
     ///
     /// * `device` - The [`VirtualDevice`] to use for sending events.
-    pub fn new(device: VirtualDevice) -> Terminal {
+    pub fn new(device: VirtualDevice, config: TerminalConfig) -> Terminal {
         let mut term = Terminal {
             entry: Vec::new(),
             pos: 0,
             device,
+            config,
         };
         // Write the > char
         term.init();
@@ -354,39 +366,21 @@ impl Terminal {
     /// # Arguments
     ///
     /// * `uid` - The user id to run the command as.
-    pub fn run(&mut self, uid: u32) -> Result<String, Box<dyn std::error::Error>> {
-        let command = self.get_entry();
+    pub fn run(&self, uid: u32) -> Result<String, Box<dyn std::error::Error>> {
+        let mut command = std::process::Command::new("sudo");
+        command
+            .args(["-u", &format!("#{}", uid), "--"])
+            .args(&self.config.pre_cmd)
+            .arg(self.get_entry());
+        log::info!("Running command: {:?}", &command);
+        let output = command.output()?;
 
-        let cmd = [
-            "sudo",
-            "-u",
-            &format!("#{}", uid),
-            "--",
-            "sh",
-            "-c",
-            &command,
-        ];
-        log::info!("Running command: {:?}", cmd);
-        let mut p = Popen::create(
-            &cmd,
-            PopenConfig {
-                stdout: Redirection::Pipe,
-                stderr: Redirection::Pipe,
-                ..Default::default()
-            },
-        )?;
-
-        p.wait()?;
-        let (out, err) = p.communicate(None)?;
-
-        Ok(format!(
-            "{}{}",
-            out.unwrap_or("".into()),
-            err.unwrap_or("".into())
-        ))
+        let out = String::from_utf8_lossy(&output.stdout);
+        let err = String::from_utf8_lossy(&output.stderr);
+        Ok((out + err).to_string())
     }
 
-    /// Clear the text by sending backspaces
+    /// Clear the text by sending backspaces.
     pub fn clear(&mut self) {
         // Move to the end of the entry
         self.end();

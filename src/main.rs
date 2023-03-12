@@ -1,15 +1,21 @@
+use clap::Parser;
+use env_logger::Env;
 use evdev::Device;
 use tokio_stream::{StreamExt, StreamMap};
-use env_logger::Env;
 
+mod cli;
 mod keyboard;
+mod permissions;
 mod terminal;
 mod uinput;
-mod permissions;
 mod utils;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = cli::Arguments::parse();
+    log::debug!("args: {:?}", args);
+    let pre_cmd = shlex::split(&args.pre_cmd).ok_or("Failed to parse command")?;
+
     // env_logger::init();
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
@@ -25,7 +31,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .filter(utils::check_device_is_keyboard)
         .collect();
 
-
     log::info!("Found {} keyboards", keyboard_devices.len());
     for device in keyboard_devices.iter() {
         log::debug!("Device: {:?}", device.name());
@@ -38,8 +43,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         stream_map.insert(i, device.into_event_stream()?);
     }
     // Setup keyboard
-    let mut keyboard = keyboard::Keyboard::new(uinput_device);
-    
+    let terminal_config = terminal::TerminalConfig { pre_cmd };
+    let mut keyboard = keyboard::Keyboard::new(uinput_device, terminal_config.into());
+
     log::info!("Listening for events...");
 
     // Event loop

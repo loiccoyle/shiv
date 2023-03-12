@@ -6,6 +6,7 @@ use std::fmt::Debug;
 
 use crate::terminal::EventFlag;
 use crate::terminal::Terminal;
+use crate::terminal::TerminalConfig;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub enum Modifier {
@@ -43,11 +44,17 @@ impl Keyboard {
     /// # Arguments
     ///
     /// * `device` - The virtual device to emit events to.
-    pub fn new(device: VirtualDevice) -> Keyboard {
+    pub fn new(device: VirtualDevice, terminal_config: Option<TerminalConfig>) -> Keyboard {
         Keyboard {
             modifiers: HashSet::new(),
             keysyms: AttributeSet::new(),
-            terminal: Terminal::new(device),
+            terminal: Terminal::new(
+                device,
+                match terminal_config {
+                    Some(config) => config,
+                    None => TerminalConfig::default(),
+                },
+            ),
         }
     }
 
