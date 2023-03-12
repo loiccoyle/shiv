@@ -350,16 +350,23 @@ impl Terminal {
     }
 
     /// Run the command and return the stdout and stderr outputs.
-    pub fn run(&mut self, uid: Option<u32>) -> Result<String, Box<dyn std::error::Error>> {
+    pub fn run(&mut self, uid: u32) -> Result<String, Box<dyn std::error::Error>> {
         let command = self.get_entry();
 
         log::info!("Running command: {}", command);
         let mut p = Popen::create(
-            &["sh", "-c", &command],
+            &[
+                "sudo",
+                "-u",
+                &format!("#{}", uid),
+                "--",
+                "sh",
+                "-c",
+                &command,
+            ],
             PopenConfig {
                 stdout: Redirection::Pipe,
                 stderr: Redirection::Pipe,
-                setuid: uid,
                 ..Default::default()
             },
         )?;

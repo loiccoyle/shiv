@@ -62,7 +62,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 keyboard.terminal.clear();
             };
             log::info!("Dropped privileges");
-            let out = keyboard.terminal.run(uid.into());
+            let out = keyboard.terminal.run(uid);
             match out {
                 Ok(out) => {
                     log::info!("Command ran successfully");
