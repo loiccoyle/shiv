@@ -1,4 +1,4 @@
-use evdev::{Device, Key};
+use evdev::Device;
 use tokio_stream::{StreamExt, StreamMap};
 use env_logger::Env;
 
@@ -6,42 +6,7 @@ mod keyboard;
 mod terminal;
 mod uinput;
 mod permissions;
-
-/// Determine if a device is a keyboard.
-///
-/// # Arguments
-///
-/// * `device` - The device to check.
-fn check_device_is_keyboard(device: &Device) -> bool {
-    if device
-        .supported_keys()
-        .map_or(false, |keys| keys.contains(Key::KEY_ENTER))
-    {
-        if device.name() == Some(uinput::UINPUT_DEVICE_NAME)
-            || !device.name().unwrap().to_lowercase().contains("keyboard")
-        {
-            return false;
-        }
-        true
-    } else {
-        false
-    }
-}
-
-/// Get a list of all keyboards.
-fn get_keyboards() -> Vec<Device> {
-    evdev::enumerate()
-        .map(|(_, device)| device)
-        .filter(check_device_is_keyboard)
-        .collect()
-}
-
-/// Release the keyboards.
-fn release_keyboards() {
-    get_keyboards().into_iter().for_each(|mut device| {
-        let _ = device.ungrab();
-    });
-}
+mod utils;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -57,7 +22,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // fetch keyboards
     let keyboard_devices: Vec<Device> = evdev::enumerate()
         .map(|(_, device)| device)
-        .filter(check_device_is_keyboard)
+        .filter(utils::check_device_is_keyboard)
         .collect();
 
 
@@ -109,6 +74,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             break;
         }
     }
-    release_keyboards();
+    utils::release_keyboards();
     Ok(())
 }
