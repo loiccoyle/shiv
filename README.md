@@ -65,7 +65,7 @@ Options:
           Type out the command output instead of pasting it
 
   -d, --key-delay <KEY_DELAY>
-          Add delay between keypresses, in ms, values between 0 and 10 work best
+          Add delay between keypresses, in ms, values between 1 and 10 work best
 
   -v, --verbose...
           Increase verbosity
