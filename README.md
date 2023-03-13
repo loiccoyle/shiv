@@ -6,9 +6,9 @@ It allows you to run shell commands from any text box.
 
 ## ❓ How
 
-When started, `shiv` creates a virtual keyboard and listens for keyboard events.
+When started, `shiv` grabs the user's keyboard and creates a virtual pass-through keyboard.
 
-It keeps track of the user's inputs and forwards them selectively to the virtual device.
+It keeps track of the user's inputs and forwards them selectively to the virtual keyboard.
 
 When the enter key is pressed, the provided command is run and its output is pasted in (or typed out using the `-T` option).
 
