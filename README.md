@@ -1,5 +1,11 @@
 # shiv
 
+## 📋 Usage
+
+<!-- help start -->
+
+<!-- help end -->
+
 ## ✔️ TODO:
 
 - [x] add a cli
