@@ -63,7 +63,7 @@ pub struct Arguments {
     #[clap(short = 'T', long)]
     pub type_output: bool,
 
-    /// Add delay between keypresses, in ms, values between 0 and 10 work best.
+    /// Add delay between keypresses, in ms, values between 1 and 10 work best
     #[clap(short = 'd', long, value_parser=duration_parser, default_value=None)]
     pub key_delay: Option<std::time::Duration>,
 

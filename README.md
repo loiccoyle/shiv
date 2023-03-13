@@ -10,7 +10,7 @@ When started, `shiv` creates a virtual keyboard and listens for keyboard events.
 
 It keeps track of the user's inputs and forwards them selectively to the virtual device.
 
-When the enter key is pressed, the provided command is run and its output is pasted in, (or typed out using the `-T` option).
+When the enter key is pressed, the provided command is run and its output is pasted in (or typed out using the `-T` option).
 
 > **Note:** To create and grab the keyboard devices `shiv` needs elevated privileges. The command, however, is run as the invoking user.
 
