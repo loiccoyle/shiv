@@ -251,11 +251,11 @@ impl Terminal {
     ///
     /// Panics if the events could not be emitted.
     pub fn send_key(&mut self, key: Key, shift: bool) {
-        let events = self.send_key_events(key, shift);
+        let events = self.key_events(key, shift);
         self.device.emit(events.as_slice()).unwrap();
     }
 
-    fn send_key_events(&self, key: Key, shift: bool) -> Vec<InputEvent> {
+    fn key_events(&self, key: Key, shift: bool) -> Vec<InputEvent> {
         if shift {
             vec![
                 InputEvent::new(EventType::KEY, Key::KEY_LEFTSHIFT.code(), 1),
@@ -346,7 +346,7 @@ impl Terminal {
 
     fn end_events(&self) -> Vec<InputEvent> {
         let n_rights = self.entry.len() - self.pos;
-        self.send_key_events(Key::KEY_RIGHT, false).repeat(n_rights)
+        self.key_events(Key::KEY_RIGHT, false).repeat(n_rights)
     }
 
     fn add_char(&mut self, c: char) -> EventFlag {
@@ -404,24 +404,25 @@ impl Terminal {
         Ok((out + err).to_string())
     }
 
+    /// Clear the input line. By sending backspace and delete events.
     pub fn clear(&mut self) {
         self.device.emit(self.clear_events().as_slice()).unwrap();
     }
 
     /// Generate the clear events.
     pub fn clear_events(&self) -> Vec<InputEvent> {
-        // Move to the end of the entry
+        // The delete events
         // +1 for the < char
         let n_to_right = self.entry.len() - self.pos + 1;
         let mut events = self
-            .send_key_events(Key::KEY_DELETE, false)
+            .key_events(Key::KEY_DELETE, false)
             .repeat(n_to_right);
 
-        // Send the backspaces
+        // The backspace events
         // + for the > chars
         events.extend_from_slice(
             &self
-                .send_key_events(Key::KEY_BACKSPACE, false)
+                .key_events(Key::KEY_BACKSPACE, false)
                 .repeat(self.pos + 1),
         );
         log::trace!("Clear BS events: {:?}", events);
@@ -434,7 +435,7 @@ impl Terminal {
     ///
     /// * `contents`: The contents of the command output.
     pub fn write(&mut self, contents: String) {
-        log::debug!("Writing contents: {}", contents);
+        log::info!("Writing contents: {}", contents);
         let clear_event = self.clear_events();
         if !contents.is_empty() {
             match self.config.output_method {
@@ -449,27 +450,13 @@ impl Terminal {
     /// # Arguments
     ///
     /// * `contents`: The contents of the command output.
+    /// * `prev_events`: Append to these events and send all at once.
     pub fn write_type(&mut self, contents: String, prev_events: Option<Vec<InputEvent>>) {
         let mut events = prev_events.unwrap_or(Vec::new());
 
         for c in contents.chars() {
             if let Some((key, shift)) = CHAR_TO_KEY.get(&c) {
-                if *shift {
-                    events.push(InputEvent::new(
-                        EventType::KEY,
-                        Key::KEY_LEFTSHIFT.code(),
-                        1,
-                    ));
-                }
-                events.push(InputEvent::new(EventType::KEY, key.code(), 1));
-                events.push(InputEvent::new(EventType::KEY, key.code(), 0));
-                if *shift {
-                    events.push(InputEvent::new(
-                        EventType::KEY,
-                        Key::KEY_LEFTSHIFT.code(),
-                        0,
-                    ));
-                }
+                events.extend_from_slice(&self.key_events(*key, *shift));
             } else {
                 log::warn!("No key found for char: {}", c);
             }
@@ -484,10 +471,11 @@ impl Terminal {
     /// # Arguments
     ///
     /// * `contents`: The contents of the command output.
+    /// * `prev_events`: Append to these events and send all at once.
     fn write_paste(&mut self, contents: String, prev_events: Option<Vec<InputEvent>>) {
         let mut events = prev_events.unwrap_or(Vec::new());
 
-        events.extend_from_slice(&self.send_key_events(Key::KEY_PASTE, false));
+        events.extend_from_slice(&self.key_events(Key::KEY_PASTE, false));
         println!("Paste events: {:?}", events);
 
         let mut clipboard = arboard::Clipboard::new().unwrap();
