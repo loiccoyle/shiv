@@ -1,6 +1,35 @@
 # shiv
 
+`shiv` is a jankier version of [`shin`](https://github.com/p-e-w/shin), which does not require `ibus`.
+
+It allows you to run shell commands from any text box.
+
+## ❓ How
+
+When started, `shiv` creates a virtual keyboard and listens for keyboard events.
+
+It keeps track of the user's inputs and forwards them selectively to the virtual device.
+
+When the enter key is pressed, the provided command is run and its output is pasted in, (or typed out using the `-T` option).
+
+> **Note:** To create and grab the keyboard devices `shiv` needs elevated privileges. The command, however, is run as the invoking user.
+
 ## 📋 Usage
+
+`shiv` is designed to be bound to a key combination.
+
+For example, I use the following [`sxhkd`](https://github.com/baskerville/sxhkd) mappings:
+
+```
+super + i; any + g
+    sudo shiv -d 5 "sgpt"
+super + i; any + f
+    sudo shiv -d 5 "figlet"
+super + i; any + i
+    sudo shiv -d 5
+```
+
+As always, if in doubt, see the `--help`:
 
 <!-- help start -->
 
