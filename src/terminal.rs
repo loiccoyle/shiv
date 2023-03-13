@@ -190,6 +190,7 @@ pub struct TerminalConfig {
     /// Command to which the user input is used as argument.
     pub pre_cmd: Vec<String>,
     pub output_method: OutputMethod,
+    pub key_delay: Option<std::time::Duration>,
 }
 
 impl Default for TerminalConfig {
@@ -197,6 +198,7 @@ impl Default for TerminalConfig {
         Self {
             pre_cmd: vec!["bash".to_string(), "-c".to_string()],
             output_method: OutputMethod::Paste,
+            key_delay: None,
         }
     }
 }
@@ -249,20 +251,30 @@ impl Terminal {
     ///
     /// Panics if the events could not be emitted.
     pub fn send_key(&mut self, key: Key, shift: bool) {
-        let events = if shift {
+        let events = self.send_key_events(key, shift);
+        self.device.emit(events.as_slice()).unwrap();
+    }
+
+    fn send_key_events(&self, key: Key, shift: bool) -> Vec<InputEvent> {
+        if shift {
             vec![
                 InputEvent::new(EventType::KEY, Key::KEY_LEFTSHIFT.code(), 1),
+                InputEvent::new(EventType::SYNCHRONIZATION, 0, 0),
                 InputEvent::new(EventType::KEY, key.code(), 1),
+                InputEvent::new(EventType::SYNCHRONIZATION, 0, 0),
                 InputEvent::new(EventType::KEY, key.code(), 0),
+                InputEvent::new(EventType::SYNCHRONIZATION, 0, 0),
                 InputEvent::new(EventType::KEY, Key::KEY_LEFTSHIFT.code(), 0),
+                InputEvent::new(EventType::SYNCHRONIZATION, 0, 0),
             ]
         } else {
             vec![
                 InputEvent::new(EventType::KEY, key.code(), 1),
+                InputEvent::new(EventType::SYNCHRONIZATION, 0, 0),
                 InputEvent::new(EventType::KEY, key.code(), 0),
+                InputEvent::new(EventType::SYNCHRONIZATION, 0, 0),
             ]
-        };
-        self.device.emit(events.as_slice()).unwrap();
+        }
     }
 
     fn init(&mut self) {
@@ -323,18 +335,18 @@ impl Terminal {
 
     fn end(&mut self) -> EventFlag {
         if self.pos < self.entry.len() {
-            let n_rights = self.entry.len() - self.pos;
-            let right_events = [
-                InputEvent::new(EventType::KEY, Key::KEY_RIGHT.code(), 1),
-                InputEvent::new(EventType::KEY, Key::KEY_RIGHT.code(), 0),
-            ]
-            .repeat(n_rights);
+            let right_events = self.end_events();
             log::trace!("end right events: {:?}", right_events);
             self.device.emit(right_events.as_slice()).unwrap();
             self.pos = self.entry.len();
         }
         // always block the event as we emulate the end by typing a bunch of right arrows
         EventFlag::Block
+    }
+
+    fn end_events(&self) -> Vec<InputEvent> {
+        let n_rights = self.entry.len() - self.pos;
+        self.send_key_events(Key::KEY_RIGHT, false).repeat(n_rights)
     }
 
     fn add_char(&mut self, c: char) -> EventFlag {
@@ -392,26 +404,28 @@ impl Terminal {
         Ok((out + err).to_string())
     }
 
-    /// Clear the text by sending backspaces.
     pub fn clear(&mut self) {
-        // Move to the end of the entry
-        self.end();
-        // move one right for the last < char
-        self.send_key(Key::KEY_RIGHT, false);
+        self.device.emit(self.clear_events().as_slice()).unwrap();
+    }
 
-        let mut events = vec![];
+    /// Generate the clear events.
+    pub fn clear_events(&self) -> Vec<InputEvent> {
+        // Move to the end of the entry
+        // +1 for the < char
+        let n_to_right = self.entry.len() - self.pos + 1;
+        let mut events = self
+            .send_key_events(Key::KEY_DELETE, false)
+            .repeat(n_to_right);
+
         // Send the backspaces
-        events.append(
-            vec![
-                InputEvent::new(EventType::KEY, Key::KEY_BACKSPACE.code(), 1),
-                InputEvent::new(EventType::KEY, Key::KEY_BACKSPACE.code(), 0),
-            ]
-            .as_mut(),
+        // + for the > chars
+        events.extend_from_slice(
+            &self
+                .send_key_events(Key::KEY_BACKSPACE, false)
+                .repeat(self.pos + 1),
         );
-        // +2 for the >< chars
-        events = events.repeat(self.entry.len() + 2);
         log::trace!("Clear BS events: {:?}", events);
-        self.device.emit(events.as_slice()).unwrap();
+        events
     }
 
     /// Write the command output.
@@ -421,10 +435,12 @@ impl Terminal {
     /// * `contents`: The contents of the command output.
     pub fn write(&mut self, contents: String) {
         log::debug!("Writing contents: {}", contents);
-        self.clear();
-        match self.config.output_method {
-            OutputMethod::Type => self.write_type(contents),
-            OutputMethod::Paste => self.write_paste(contents),
+        let clear_event = self.clear_events();
+        if !contents.is_empty() {
+            match self.config.output_method {
+                OutputMethod::Type => self.write_type(contents, Some(clear_event)),
+                OutputMethod::Paste => self.write_paste(contents, Some(clear_event)),
+            }
         }
     }
 
@@ -433,8 +449,9 @@ impl Terminal {
     /// # Arguments
     ///
     /// * `contents`: The contents of the command output.
-    pub fn write_type(&mut self, contents: String) {
-        let mut events = Vec::new();
+    pub fn write_type(&mut self, contents: String, prev_events: Option<Vec<InputEvent>>) {
+        let mut events = prev_events.unwrap_or(Vec::new());
+
         for c in contents.chars() {
             if let Some((key, shift)) = CHAR_TO_KEY.get(&c) {
                 if *shift {
@@ -458,7 +475,8 @@ impl Terminal {
             }
         }
         log::trace!("Write events: {:?}", events);
-        self.device.emit(events.as_slice()).unwrap();
+
+        self.send_events(events);
     }
 
     /// Write the command output through the clipboard.
@@ -466,19 +484,35 @@ impl Terminal {
     /// # Arguments
     ///
     /// * `contents`: The contents of the command output.
-    fn write_paste(&mut self, contents: String) {
+    fn write_paste(&mut self, contents: String, prev_events: Option<Vec<InputEvent>>) {
+        let mut events = prev_events.unwrap_or(Vec::new());
+
+        events.extend_from_slice(&self.send_key_events(Key::KEY_PASTE, false));
+        println!("Paste events: {:?}", events);
+
         let mut clipboard = arboard::Clipboard::new().unwrap();
         let cp_data = clipboard.get_text().ok();
         log::debug!("Clipboard data: {:?}", cp_data);
         clipboard.set_text(contents).unwrap();
         // Paste the contents
-        self.send_key(Key::KEY_PASTE, false);
+        self.send_events(events);
         // We need to wait for the key to register before resetting the clipboard
-        std::thread::sleep(std::time::Duration::from_millis(50));
-        if let Some(data) = cp_data {
-            log::debug!("Resetting clipboard to: {}", data);
-            // Reset the clipboard
-            clipboard.set_text(data).unwrap();
+        // reset the clipboard in a new thread
+        // if let Some(data) = cp_data {
+        //     log::debug!("Resetting clipboard to: {}", data);
+        //     clipboard.set_text(data).unwrap();
+        // }
+    }
+
+    fn send_events(&mut self, events: Vec<InputEvent>) {
+        if let Some(delay) = self.config.key_delay {
+            // 2 by 2 to send the SYNCHRONIZATION report along with the key
+            for events in events.windows(2) {
+                self.device.emit(events).unwrap();
+                std::thread::sleep(delay);
+            }
+        } else {
+            self.device.emit(events.as_slice()).unwrap();
         }
     }
 }

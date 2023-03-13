@@ -9,6 +9,11 @@ fn validate_shell_cmd(arg: &str) -> Result<String, String> {
     }
 }
 
+fn duration_parser(arg: &str) -> Result<std::time::Duration, String> {
+    let delay = arg.parse::<u64>().map_err(|e| e.to_string())?;
+    Ok(std::time::Duration::from_millis(delay))
+}
+
 #[derive(Copy, Clone, Debug, Default)]
 pub struct Level;
 
@@ -57,6 +62,10 @@ pub struct Arguments {
     /// Type out the command output instead of pasting it
     #[clap(short = 'T', long)]
     pub type_output: bool,
+
+    /// Add delay between keypresses, in ms, values between 0 and 10 work best.
+    #[clap(short = 'd', long, value_parser=duration_parser, default_value=None)]
+    pub key_delay: Option<std::time::Duration>,
 
     #[command(flatten)]
     pub verbose: Verbosity<Level>,

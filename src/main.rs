@@ -55,6 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             terminal::OutputMethod::Paste
         },
+        key_delay: args.key_delay,
     };
     let mut keyboard = keyboard::Keyboard::new(uinput_device, terminal_config.into());
 
@@ -67,6 +68,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // The terminal class keeps track of the inputs and decides wether
         // to pass it to the virtual device or not
         keyboard.handle_event(&event);
+        log::trace!("Event: {:?}", event);
         log::trace!("Keyboard state: {:?}", keyboard);
 
         if keyboard.is_ctrl_c() || keyboard.is_escape() {
