@@ -70,3 +70,15 @@ pub struct Arguments {
     #[command(flatten)]
     pub verbose: Verbosity<Level>,
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_cli() {
+        let args = Arguments::parse_from(["shiv", "-d", "100", "bash -c"]);
+        assert_eq!(args.key_delay, Some(std::time::Duration::from_millis(100)));
+        assert_eq!(args.pre_cmd, "bash -c");
+    }
+}
