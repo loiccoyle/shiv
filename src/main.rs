@@ -1,5 +1,6 @@
 use clap::Parser;
 use evdev::Device;
+use tokio::{spawn, task::JoinHandle};
 use tokio_stream::{StreamExt, StreamMap};
 
 mod cli;
@@ -62,46 +63,80 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         key_delay: args.key_delay,
     };
-    let mut keyboard = keyboard::Keyboard::new(uinput_device, terminal_config.into());
+    let mut keyboard = keyboard::Keyboard::new();
+    let mut terminal = terminal::Terminal::new(uinput_device, terminal_config);
+    let mut cmd_task: Option<JoinHandle<()>> = None;
 
     log::info!("Listening for keyboard events...");
     log::info!("Ctrl-C/ESC to exit");
     // Event loop
     while let Some((_, Ok(event))) = stream_map.next().await {
-        // Event is passed to the keyboard class
-        // It then passes it to the terminal class
+        // Event is passed to the keyboard class.
+        // It is then passed to the terminal class.
         // The terminal class keeps track of the inputs and decides wether
-        // to pass it to the virtual device or not
-        keyboard.handle_event(&event);
+        // to pass it to the virtual device or not.
         log::trace!("Event: {:?}", event);
         log::trace!("Keyboard state: {:?}", keyboard);
-
-        if keyboard.is_ctrl_c() || keyboard.is_escape() {
-            keyboard.terminal.clear();
-            log::info!("Ctrl-C/ESC detected, exiting...");
-            break;
-        } else if keyboard.is_enter() {
-            log::info!("Enter detected, Running command and typing output...");
-            if let Err(e) = permissions::drop_privileges(uid) {
-                log::error!("Failed to drop privileges: {}", e);
-                keyboard.terminal.clear();
-            };
-            log::debug!("Dropped privileges");
-            let out = keyboard.terminal.run(uid);
-            match out {
-                Ok(out) => {
-                    log::info!("Command ran successfully");
-                    keyboard.terminal.write(out);
-                }
-                Err(e) => {
-                    log::error!("Command failed: {}", e);
-                    keyboard.terminal.clear();
-                    keyboard.terminal.write(format!("Command failed: {}", e));
+        match event.kind() {
+            evdev::InputEventKind::Key(key) => {
+                keyboard.handle_event(event, key);
+                if event.value() == 0 {
+                    // Re-emit all key releases
+                    terminal.emit(&[event]).unwrap();
+                } else if cmd_task.is_none() { // don't update the terminal state if cmd is running
+                    // Re-emit key presses based on the terminal state and capabilities
+                    match terminal.handle_key(key, keyboard.is_shift()) {
+                        terminal::EventFlag::Emit => {
+                            log::debug!("Emitting {:?}", event);
+                            // here we emit the event as a single key press regardless of if it was a held down
+                            // key or not. This is because we are not handling key repeats. And allows the
+                            // grabbed keyboard to decide the rates of the virtual device.
+                            terminal.send_key(key, keyboard.is_shift())
+                        }
+                        terminal::EventFlag::Block => {}
+                    }
                 }
             }
+            evdev::InputEventKind::Synchronization(_) => terminal.emit(&[event]).unwrap(),
+            _ => {}
+        }
+
+        if keyboard.is_ctrl_c() || keyboard.is_escape() {
+            log::info!("Ctrl-C/ESC detected, exiting...");
+            utils::release_keyboards();
+            terminal.clear();
+            if let Some(task) = cmd_task {
+                log::info!("Killing running command");
+                task.abort();
+            }
             break;
+        } else if keyboard.is_enter() {
+            log::info!("Enter detected, running command and writing output...");
+            if let Err(e) = permissions::drop_privileges(uid) {
+                log::error!("Failed to drop privileges: {}", e);
+                terminal.clear();
+            };
+            log::debug!("Dropped privileges");
+            let mut runner = terminal.clone();
+            cmd_task = Some(spawn(async move {
+                let out = runner.run(uid).await;
+                match out {
+                    Ok(out) => {
+                        log::info!("Command ran successfully");
+                        runner.write(out);
+                        utils::release_keyboards();
+                        std::process::exit(0);
+                    }
+
+                    Err(e) => {
+                        log::error!("Command failed: {}", e);
+                        utils::release_keyboards();
+                        runner.write(format!("Command failed: {}", e));
+                        std::process::exit(1);
+                    }
+                }
+            }));
         }
     }
-    utils::release_keyboards();
     Ok(())
 }

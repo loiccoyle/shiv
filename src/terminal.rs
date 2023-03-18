@@ -8,6 +8,9 @@ use std::collections::HashSet;
 use std::error::Error;
 use std::fmt::Debug;
 use std::fmt::Formatter;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::process::Command;
 
 lazy_static! {
     static ref KEY_TO_CHAR: HashMap<Key, char> = HashMap::from(
@@ -204,13 +207,14 @@ impl Default for TerminalConfig {
     }
 }
 
+#[derive(Clone)]
 /// Represents the emulated terminal the user is typing into.
 /// It keeps track of their inputs, controls the flow of events to the virtual device, constructs
 /// the command string, runs it and types back the output.
 pub struct Terminal {
     entry: Vec<char>,
     pos: usize,
-    pub device: VirtualDevice,
+    pub device: Arc<Mutex<VirtualDevice>>,
     config: TerminalConfig,
 }
 
@@ -234,7 +238,7 @@ impl Terminal {
         let mut term = Terminal {
             entry: Vec::new(),
             pos: 0,
-            device,
+            device: Arc::new(Mutex::new(device)),
             config,
         };
         // Write the > char
@@ -386,14 +390,13 @@ impl Terminal {
     /// # Arguments
     ///
     /// * `uid` - The user id to run the command as.
-    pub fn run(&self, uid: u32) -> Result<String, Box<dyn Error>> {
-        let mut command = std::process::Command::new("sudo");
+    pub async fn run(&self, uid: u32) -> Result<String, Box<dyn Error>> {
+        let mut command = Command::new("sudo");
         command
-            .args(["-u", &format!("#{}", uid), "--"])
+            .args(["-u", &format!("#{}", uid), "-i", "--"])
             .args(&self.config.pre_cmd)
             .arg(self.get_entry());
         log::info!("Running command: {:?}", &command);
-        // FIXME: This can block if the command runs forewer, use a separate thread with a timeout.
         let output = command.output()?;
 
         let out = String::from_utf8_lossy(&output.stdout);
@@ -420,7 +423,6 @@ impl Terminal {
                 .key_events(Key::KEY_BACKSPACE, false)
                 .repeat(self.pos + 1),
         );
-        log::trace!("Clear BS events: {:?}", events);
         events
     }
 
@@ -473,7 +475,7 @@ impl Terminal {
         let mut events = prev_events.unwrap_or(Vec::new());
 
         events.extend_from_slice(&self.key_events(Key::KEY_PASTE, false));
-        println!("Paste events: {:?}", events);
+        log::trace!("Paste events: {:?}", events);
 
         let mut clipboard = arboard::Clipboard::new().unwrap();
         let cp_data = clipboard.get_text().ok();
@@ -502,7 +504,7 @@ impl Terminal {
     }
 
     pub fn emit(&mut self, events: &[InputEvent]) -> Result<(), Box<dyn Error>> {
-        self.device.emit(events)?;
+        self.device.clone().lock().unwrap().emit(events)?;
         Ok(())
     }
 }
