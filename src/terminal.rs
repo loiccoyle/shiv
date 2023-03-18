@@ -203,7 +203,7 @@ impl Default for TerminalConfig {
     }
 }
 
-/// Reprents the emulated terminal the user is typing into.
+/// Represents the emulated terminal the user is typing into.
 /// It keeps track of their inputs, controls the flow of events to the virtual device, constructs
 /// the command string, runs it and types back the output.
 pub struct Terminal {
