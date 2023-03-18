@@ -440,6 +440,8 @@ impl Terminal {
                 OutputMethod::Type => self.write_type(contents, Some(clear_event)),
                 OutputMethod::Paste => self.write_paste(contents, Some(clear_event)),
             }
+        } else {
+            self.send_events(clear_event);
         }
     }
 
