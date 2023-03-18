@@ -414,12 +414,10 @@ impl Terminal {
         // The delete events
         // +1 for the < char
         let n_to_right = self.entry.len() - self.pos + 1;
-        let mut events = self
-            .key_events(Key::KEY_DELETE, false)
-            .repeat(n_to_right);
+        let mut events = self.key_events(Key::KEY_DELETE, false).repeat(n_to_right);
 
         // The backspace events
-        // + for the > chars
+        // + 1 for the > chars
         events.extend_from_slice(
             &self
                 .key_events(Key::KEY_BACKSPACE, false)
