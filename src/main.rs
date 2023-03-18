@@ -36,6 +36,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .filter(utils::check_device_is_keyboard)
         .collect();
 
+    if keyboard_devices.is_empty() {
+        log::error!("No keyboard found");
+        std::process::exit(1);
+    }
+
     log::info!("Found {} keyboards", keyboard_devices.len());
     for device in keyboard_devices.iter() {
         log::debug!("Device: {:?}", device.name());
