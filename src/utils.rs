@@ -11,12 +11,12 @@ pub fn check_device_is_keyboard(device: &Device) -> bool {
         .supported_keys()
         .map_or(false, |keys| keys.contains(Key::KEY_ENTER))
     {
-        if device.name() == Some(uinput::UINPUT_DEVICE_NAME)
-            || !device.name().unwrap().to_lowercase().contains("keyboard")
-        {
-            return false;
+        if device.name() == Some(uinput::UINPUT_DEVICE_NAME) {
+            false
+        } else {
+            // Only accept devices that have no relative axes i.e. try to ignore mice.
+            device.supported_relative_axes().is_none()
         }
-        true
     } else {
         false
     }
