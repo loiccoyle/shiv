@@ -12,7 +12,6 @@ extern "C" {
 pub fn get_caller_uid() -> Result<u32, Box<dyn std::error::Error>> {
     unsafe {
         let mut uid = geteuid();
-        // let mut uid = env::var("UID").expect("UID environment variable should be set");
         if uid == 0 {
             if let Ok(sudo_uid) = env::var("SUDO_UID") {
                 uid = sudo_uid.parse::<u32>()?;
@@ -59,4 +58,14 @@ fn set_euid(uid: u32) -> Result<(), Box<dyn std::error::Error>> {
     let uid = Uid::from_raw(uid);
     nix::unistd::seteuid(uid)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_caller_uid() {
+        assert!(get_caller_uid().is_ok());
+    }
 }
