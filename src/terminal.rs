@@ -5,6 +5,7 @@ use evdev::Key;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::error::Error;
 use std::fmt::Debug;
 use std::fmt::Formatter;
 
@@ -252,7 +253,7 @@ impl Terminal {
     /// Panics if the events could not be emitted.
     pub fn send_key(&mut self, key: Key, shift: bool) {
         let events = self.key_events(key, shift);
-        self.device.emit(events.as_slice()).unwrap();
+        self.send_events(events);
     }
 
     fn key_events(&self, key: Key, shift: bool) -> Vec<InputEvent> {
@@ -320,13 +321,9 @@ impl Terminal {
     fn home(&mut self) -> EventFlag {
         if self.pos > 0 {
             let n_lefts = self.pos;
-            let left_events = [
-                InputEvent::new(EventType::KEY, Key::KEY_LEFT.code(), 1),
-                InputEvent::new(EventType::KEY, Key::KEY_LEFT.code(), 0),
-            ]
-            .repeat(n_lefts);
+            let left_events = self.key_events(Key::KEY_LEFT, false).repeat(n_lefts);
             log::trace!("home left events: {:?}", left_events);
-            self.device.emit(left_events.as_slice()).unwrap();
+            self.send_events(left_events);
             self.pos = 0;
         }
         // always block the event as we emulate the home by typing a bunch of left arrows
@@ -337,7 +334,7 @@ impl Terminal {
         if self.pos < self.entry.len() {
             let right_events = self.end_events();
             log::trace!("end right events: {:?}", right_events);
-            self.device.emit(right_events.as_slice()).unwrap();
+            self.send_events(right_events);
             self.pos = self.entry.len();
         }
         // always block the event as we emulate the end by typing a bunch of right arrows
@@ -389,7 +386,7 @@ impl Terminal {
     /// # Arguments
     ///
     /// * `uid` - The user id to run the command as.
-    pub fn run(&self, uid: u32) -> Result<String, Box<dyn std::error::Error>> {
+    pub fn run(&self, uid: u32) -> Result<String, Box<dyn Error>> {
         let mut command = std::process::Command::new("sudo");
         command
             .args(["-u", &format!("#{}", uid), "--"])
@@ -406,7 +403,7 @@ impl Terminal {
 
     /// Clear the input line. By sending backspace and delete events.
     pub fn clear(&mut self) {
-        self.device.emit(self.clear_events().as_slice()).unwrap();
+        self.send_events(self.clear_events());
     }
 
     /// Generate the clear events.
@@ -496,11 +493,16 @@ impl Terminal {
         if let Some(delay) = self.config.key_delay {
             // 2 by 2 to send the SYNCHRONIZATION report along with the key
             for events in events.windows(2) {
-                self.device.emit(events).unwrap();
+                self.emit(events).unwrap();
                 std::thread::sleep(delay);
             }
         } else {
-            self.device.emit(events.as_slice()).unwrap();
+            self.emit(events.as_slice()).unwrap();
         }
+    }
+
+    pub fn emit(&mut self, events: &[InputEvent]) -> Result<(), Box<dyn Error>> {
+        self.device.emit(events)?;
+        Ok(())
     }
 }

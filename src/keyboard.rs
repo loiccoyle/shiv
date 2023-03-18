@@ -67,9 +67,7 @@ impl Keyboard {
                     self.update_keysyms(event, key);
                 }
             }
-            evdev::InputEventKind::Synchronization(_) => {
-                self.terminal.device.emit(&[*event]).unwrap()
-            }
+            evdev::InputEventKind::Synchronization(_) => self.terminal.emit(&[*event]).unwrap(),
             _ => {}
         }
     }
@@ -78,7 +76,7 @@ impl Keyboard {
         if event.value() == 0 {
             // Key is released
             self.keysyms.remove(key);
-            self.terminal.device.emit(&[*event]).unwrap();
+            self.terminal.emit(&[*event]).unwrap();
         } else {
             match self.terminal.handle_key(key, self.is_shift()) {
                 EventFlag::Emit => {
@@ -105,11 +103,11 @@ impl Keyboard {
             self.modifiers.insert(modifier);
             // Pass through the shift modifier for capitals
             if self.is_shift() {
-                self.terminal.device.emit(&[*event]).unwrap();
+                self.terminal.emit(&[*event]).unwrap();
             }
         } else if event.value() == 0 {
             self.modifiers.remove(&modifier);
-            self.terminal.device.emit(&[*event]).unwrap();
+            self.terminal.emit(&[*event]).unwrap();
         }
     }
 
