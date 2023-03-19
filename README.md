@@ -33,7 +33,7 @@ As always, if in doubt, see the `--help`:
 
 <!-- help start -->
 
-```console
+```
 $ shiv --help
 Shiv: shell access everywhere.
 
