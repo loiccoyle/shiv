@@ -83,11 +83,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if event.value() == 0 {
                     // Re-emit all key releases
                     terminal.emit(&[event]).unwrap();
-                } else if cmd_task.is_none() { // don't update the terminal state if cmd is running
+                } else if cmd_task.is_none() {
+                    // don't update the terminal state if cmd is running
                     // Re-emit key presses based on the terminal state and capabilities
                     match terminal.handle_key(key, keyboard.is_shift()) {
                         terminal::EventFlag::Emit => {
-                            log::debug!("Emitting {:?}", event);
+                            log::debug!("Passing through {:?}", event);
                             // here we emit the event as a single key press regardless of if it was a held down
                             // key or not. This is because we are not handling key repeats. And allows the
                             // grabbed keyboard to decide the rates of the virtual device.
@@ -96,46 +97,47 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         terminal::EventFlag::Block => {}
                     }
                 }
+
+                if keyboard.is_ctrl_c() || keyboard.is_escape() {
+                    log::info!("Ctrl-C/ESC detected, exiting...");
+                    if let Some(task) = cmd_task {
+                        log::info!("Killing running command");
+                        task.abort();
+                    }
+                    utils::release_keyboards();
+                    terminal.clear();
+                    break;
+                } else if keyboard.is_enter() {
+                    log::info!("Enter detected, running command and writing output...");
+                    if let Err(e) = permissions::drop_privileges(uid) {
+                        log::error!("Failed to drop privileges: {}", e);
+                        terminal.clear();
+                    };
+                    log::debug!("Dropped privileges");
+                    let mut runner = terminal.clone();
+                    cmd_task = Some(spawn(async move {
+                        let out = runner.run(uid).await;
+                        // print the memmory address
+                        match out {
+                            Ok(out) => {
+                                log::info!("Command ran successfully");
+                                runner.write(out);
+                                utils::release_keyboards();
+                                std::process::exit(0);
+                            }
+
+                            Err(e) => {
+                                log::error!("Command failed: {}", e);
+                                runner.write(format!("Command failed: {}", e));
+                                utils::release_keyboards();
+                                std::process::exit(1);
+                            }
+                        }
+                    }));
+                }
             }
             evdev::InputEventKind::Synchronization(_) => terminal.emit(&[event]).unwrap(),
             _ => {}
-        }
-
-        if keyboard.is_ctrl_c() || keyboard.is_escape() {
-            log::info!("Ctrl-C/ESC detected, exiting...");
-            utils::release_keyboards();
-            terminal.clear();
-            if let Some(task) = cmd_task {
-                log::info!("Killing running command");
-                task.abort();
-            }
-            break;
-        } else if keyboard.is_enter() {
-            log::info!("Enter detected, running command and writing output...");
-            if let Err(e) = permissions::drop_privileges(uid) {
-                log::error!("Failed to drop privileges: {}", e);
-                terminal.clear();
-            };
-            log::debug!("Dropped privileges");
-            let mut runner = terminal.clone();
-            cmd_task = Some(spawn(async move {
-                let out = runner.run(uid).await;
-                match out {
-                    Ok(out) => {
-                        log::info!("Command ran successfully");
-                        runner.write(out);
-                        utils::release_keyboards();
-                        std::process::exit(0);
-                    }
-
-                    Err(e) => {
-                        log::error!("Command failed: {}", e);
-                        utils::release_keyboards();
-                        runner.write(format!("Command failed: {}", e));
-                        std::process::exit(1);
-                    }
-                }
-            }));
         }
     }
     Ok(())
