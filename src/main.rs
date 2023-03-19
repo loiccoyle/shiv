@@ -116,7 +116,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         terminal.clear();
                     };
                     log::debug!("Dropped privileges");
-                    let mut runner = terminal.clone();
+                    let runner = terminal.clone();
                     cmd_task = Some(spawn(async move {
                         let out = runner.run(uid).await;
                         // print the memmory address
