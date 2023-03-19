@@ -24,7 +24,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     log::debug!("Caller UID: {}", uid);
 
     // setup uinput virtual device
-    let uinput_device = match uinput::create_uinput_device() {
+    let virt_device = match uinput::create_uinput_device() {
         Ok(device) => device,
         Err(err) => {
             log::error!("Failed to create uinput device: {}", err);
@@ -54,7 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         stream_map.insert(i, device.into_event_stream()?);
     }
     // Setup keyboard
-    let terminal_config = terminal::TerminalConfig {
+    let config = terminal::TerminalConfig {
         pre_cmd,
         output_method: if args.type_output {
             terminal::OutputMethod::Type
@@ -64,7 +64,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         key_delay: args.key_delay,
     };
     let mut keyboard = keyboard::Keyboard::new();
-    let mut terminal = terminal::Terminal::new(uinput_device, terminal_config);
+    let mut terminal = terminal::Terminal::new(virt_device, config);
     let mut cmd_task: Option<JoinHandle<()>> = None;
 
     log::info!("Listening for keyboard events...");
