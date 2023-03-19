@@ -8,9 +8,9 @@ use std::collections::HashSet;
 use std::error::Error;
 use std::fmt::Debug;
 use std::fmt::Formatter;
+use std::process::Command;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::process::Command;
 
 lazy_static! {
     static ref KEY_TO_CHAR: HashMap<Key, char> = HashMap::from(
@@ -235,7 +235,7 @@ impl Terminal {
     ///
     /// * `device` - The [`VirtualDevice`] to use for sending events.
     pub fn new(device: VirtualDevice, config: TerminalConfig) -> Terminal {
-        let mut term = Terminal {
+        let term = Terminal {
             entry: Vec::new(),
             pos: 0,
             device: Arc::new(Mutex::new(device)),
@@ -255,7 +255,7 @@ impl Terminal {
     /// # Panics
     ///
     /// Panics if the events could not be emitted.
-    pub fn send_key(&mut self, key: Key, shift: bool) {
+    pub fn send_key(&self, key: Key, shift: bool) {
         let events = self.key_events(key, shift);
         self.send_events(events);
     }
@@ -282,7 +282,7 @@ impl Terminal {
         }
     }
 
-    fn init(&mut self) {
+    fn init(&self) {
         // Send the >< chars and move the cursor to the middle
         self.send_key(Key::KEY_DOT, true);
         self.send_key(Key::KEY_COMMA, true);
@@ -405,7 +405,7 @@ impl Terminal {
     }
 
     /// Clear the input line. By sending backspace and delete events.
-    pub fn clear(&mut self) {
+    pub fn clear(&self) {
         self.send_events(self.clear_events());
     }
 
@@ -431,7 +431,7 @@ impl Terminal {
     /// # Arguments
     ///
     /// * `contents`: The contents of the command output.
-    pub fn write(&mut self, contents: String) {
+    pub fn write(&self, contents: String) {
         log::info!("Writing contents: {}", contents);
         let clear_event = self.clear_events();
         if !contents.is_empty() {
@@ -450,7 +450,7 @@ impl Terminal {
     ///
     /// * `contents`: The contents of the command output.
     /// * `prev_events`: Append to these events and send all at once.
-    pub fn write_type(&mut self, contents: String, prev_events: Option<Vec<InputEvent>>) {
+    pub fn write_type(&self, contents: String, prev_events: Option<Vec<InputEvent>>) {
         let mut events = prev_events.unwrap_or(Vec::new());
 
         for c in contents.chars() {
@@ -471,7 +471,7 @@ impl Terminal {
     ///
     /// * `contents`: The contents of the command output.
     /// * `prev_events`: Append to these events and send all at once.
-    fn write_paste(&mut self, contents: String, prev_events: Option<Vec<InputEvent>>) {
+    fn write_paste(&self, contents: String, prev_events: Option<Vec<InputEvent>>) {
         let mut events = prev_events.unwrap_or(Vec::new());
 
         events.extend_from_slice(&self.key_events(Key::KEY_PASTE, false));
@@ -491,7 +491,7 @@ impl Terminal {
         // }
     }
 
-    fn send_events(&mut self, events: Vec<InputEvent>) {
+    fn send_events(&self, events: Vec<InputEvent>) {
         if let Some(delay) = self.config.key_delay {
             // 2 by 2 to send the SYNCHRONIZATION report along with the key
             for events in events.windows(2) {
@@ -503,7 +503,7 @@ impl Terminal {
         }
     }
 
-    pub fn emit(&mut self, events: &[InputEvent]) -> Result<(), Box<dyn Error>> {
+    pub fn emit(&self, events: &[InputEvent]) -> Result<(), Box<dyn Error>> {
         self.device.clone().lock().unwrap().emit(events)?;
         Ok(())
     }
