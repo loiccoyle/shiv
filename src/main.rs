@@ -107,7 +107,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     utils::release_keyboards();
                     terminal.clear();
                     break;
-                } else if keyboard.is_enter() {
+                } else if keyboard.is_enter() && cmd_task.is_none() {
                     log::info!("Enter detected, running command and writing output...");
                     if let Err(e) = permissions::drop_privileges(uid) {
                         log::error!("Failed to drop privileges: {}", e);
