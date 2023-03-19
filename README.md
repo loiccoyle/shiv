@@ -87,9 +87,9 @@ Note: shiv requires priviledges to create and access keyboard devices.
 ## ✔️ TODO:
 
 - [x] add a cli
-- [ ] add tests
-- [ ] add ci
+- [x] add tests
+- [x] add ci
+- [x] Run command in separate thread, and still allow user to cancel running command.
 - [ ] look into better permission handling
 - [ ] test on different layouts
-- [ ] Run command in separate thread, and still allow user to cancel running command.
 - [ ] Give some feedback that the command is running
