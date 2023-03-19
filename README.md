@@ -20,7 +20,7 @@ When the enter key is pressed, the provided command is run and its output is pas
 
 For example, I use the following [`sxhkd`](https://github.com/baskerville/sxhkd) mappings:
 
-```
+```sxhkd
 super + i; any + g
     sudo shiv -d 5 "sgpt"
 super + i; any + f
@@ -33,7 +33,7 @@ As always, if in doubt, see the `--help`:
 
 <!-- help start -->
 
-```
+```console
 $ shiv --help
 Shiv: shell access everywhere.
 
@@ -84,7 +84,7 @@ Note: shiv requires priviledges to create and access keyboard devices.
 
 <!-- help end -->
 
-## ✔️ TODO:
+## ✔️ TODO
 
 - [x] add a cli
 - [x] add tests
