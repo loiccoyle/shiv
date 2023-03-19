@@ -26,8 +26,8 @@ fn evdev_modifier_to_enum(key: Key) -> Option<Modifier> {
 /// Keyboard state.
 /// Keeps track of the current state of the keyboard's keys and modifiers.
 pub struct Keyboard {
-    pub modifiers: HashSet<Modifier>,
-    pub keysyms: AttributeSet<evdev::Key>,
+    modifiers: HashSet<Modifier>,
+    keysyms: AttributeSet<evdev::Key>,
 }
 
 impl Keyboard {
@@ -92,4 +92,41 @@ impl Keyboard {
     // pub fn is_alt(&self) -> bool {
     //     self.modifiers.contains(&Modifier::Alt)
     // }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use evdev::EventType;
+    use evdev::InputEvent;
+    use evdev::Key;
+
+    #[test]
+    fn test_keyboard_modifiers() {
+        let mut keyboard = Keyboard::new();
+        let event = InputEvent::new(EventType::KEY, Key::KEY_LEFTCTRL.code(), 1);
+        keyboard.handle_event(event, Key::KEY_LEFTCTRL);
+        assert!(keyboard.is_ctrl());
+        assert!(!keyboard.is_shift());
+        assert!(!keyboard.is_ctrl_c());
+        assert!(!keyboard.is_enter());
+        assert!(!keyboard.is_escape());
+
+        let event = InputEvent::new(EventType::KEY, Key::KEY_LEFTCTRL.code(), 0);
+        keyboard.handle_event(event, Key::KEY_LEFTCTRL);
+        assert!(!keyboard.is_ctrl());
+    }
+
+    #[test]
+    fn test_keyboard_keysyms() {
+        let mut keyboard = Keyboard::new();
+        let event = InputEvent::new(EventType::KEY, Key::KEY_C.code(), 1);
+        keyboard.handle_event(event, Key::KEY_C);
+        assert!(keyboard.keysyms.contains(Key::KEY_C));
+        assert!(!keyboard.keysyms.contains(Key::KEY_ENTER));
+        assert!(!keyboard.keysyms.contains(Key::KEY_ESC));
+        let event = InputEvent::new(EventType::KEY, Key::KEY_C.code(), 0);
+        keyboard.handle_event(event, Key::KEY_C);
+        assert!(!keyboard.keysyms.contains(Key::KEY_C));
+    }
 }
