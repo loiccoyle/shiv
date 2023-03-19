@@ -43,8 +43,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     log::info!("Found {} keyboards", keyboard_devices.len());
-    for device in keyboard_devices.iter() {
-        log::debug!("Device: {:?}", device.name());
+    if log::log_enabled!(log::Level::Debug) {
+        for device in keyboard_devices.iter() {
+            log::debug!("Device: {:?}", device.name());
+        }
     }
 
     let mut stream_map = StreamMap::new();
