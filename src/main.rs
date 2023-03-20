@@ -66,13 +66,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         key_delay: args.key_delay,
     };
     let mut keyboard = keyboard::Keyboard::new();
-    let mut terminal = match terminal::Terminal::new(virt_device, config) {
-        Ok(terminal) => terminal,
-        Err(err) => {
-            log::error!("Failed to create terminal: {}", err);
-            std::process::exit(1);
-        }
-    };
+    let mut terminal = terminal::Terminal::new(virt_device, config).unwrap_or_else(|e| {
+        log::error!("Failed to create terminal: {}", e);
+        std::process::exit(1);
+    });
     let mut cmd_task: Option<JoinHandle<()>> = None;
 
     log::info!("Listening for keyboard events...");
