@@ -234,6 +234,11 @@ impl Terminal {
     /// # Arguments
     ///
     /// * `device` - The [`VirtualDevice`] to use for sending events.
+    /// * `config` - The [`TerminalConfig`] to use.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if the [`Terminal::init`] call fails.
     pub fn new(device: VirtualDevice, config: TerminalConfig) -> Result<Terminal, Box<dyn Error>> {
         let term = Terminal {
             entry: Vec::new(),
@@ -252,9 +257,9 @@ impl Terminal {
     ///
     /// * `key` - The [`Key`] to send.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if the events could not be emitted.
+    /// This function will return an error if the event sending fails.
     pub fn send_key(&self, key: Key, shift: bool) -> Result<(), Box<dyn Error>> {
         let events = self.key_events(key, shift);
         self.send_events(events)
@@ -367,6 +372,10 @@ impl Terminal {
     ///
     /// * `key` - The [`Key`] that was pressed.
     /// * `shift` - Whether the shift key was pressed.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if the event sending fails.
     pub fn handle_key(&mut self, key: Key, shift: bool) -> Result<EventFlag, Box<dyn Error>> {
         if shift {
             if let Some(c) = SHIFT_KEY_TO_CHAR.get(&key) {
@@ -391,7 +400,11 @@ impl Terminal {
     /// # Arguments
     ///
     /// * `uid` - The user id to run the command as.
-    pub async fn run(&self, uid: u32) -> Result<String, Box<dyn Error>> {
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if the command fails to run.
+    pub async fn run(&self, uid: u32) -> Result<String, Box<dyn Error + Send + Sync>> {
         let mut command = Command::new("sudo");
         command
             .args(["-u", &format!("#{}", uid), "-i", "--"])
@@ -406,8 +419,15 @@ impl Terminal {
     }
 
     /// Clear the input line. By sending backspace and delete events.
-    pub fn clear(&self) -> Result<(), Box<dyn Error>> {
-        self.send_events(self.clear_events())
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if the event sending fails.
+    pub fn clear(&mut self) -> Result<(), Box<dyn Error>> {
+        let out = self.send_events(self.clear_events());
+        self.pos = 0;
+        self.entry.clear();
+        out
     }
 
     /// Generate the clear events.
@@ -432,6 +452,10 @@ impl Terminal {
     /// # Arguments
     ///
     /// * `contents`: The contents of the command output.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if the event sending fails.
     pub fn write(&self, contents: String) -> Result<(), Box<dyn Error>> {
         log::info!("Writing contents: {}", contents);
         let clear_event = self.clear_events();
@@ -451,6 +475,10 @@ impl Terminal {
     ///
     /// * `contents`: The contents of the command output.
     /// * `prev_events`: Append to these events and send all at once.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if the event sending fails.
     pub fn write_type(
         &self,
         contents: String,
