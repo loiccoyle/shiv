@@ -14,8 +14,7 @@ pub fn create_uinput_device() -> Result<VirtualDevice, Box<dyn std::error::Error
     let device = VirtualDeviceBuilder::new()?
         .name(UINPUT_DEVICE_NAME)
         .with_keys(&keys)?
-        .build()
-        .unwrap();
+        .build()?;
     Ok(device)
 }
 
