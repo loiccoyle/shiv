@@ -24,13 +24,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     log::debug!("Caller UID: {}", uid);
 
     // setup uinput virtual device
-    let virt_device = match uinput::create_uinput_device() {
-        Ok(device) => device,
-        Err(err) => {
-            log::error!("Failed to create uinput device: {}", err);
-            std::process::exit(1);
-        }
-    };
+    let virt_device = uinput::create_uinput_device().unwrap_or_else(|e| {
+        log::error!("Failed to create uinput device: {}", e);
+        std::process::exit(1);
+    });
+
     // fetch keyboards
     let keyboard_devices: Vec<Device> = evdev::enumerate()
         .map(|(_, device)| device)
