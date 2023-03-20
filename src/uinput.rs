@@ -5,6 +5,11 @@ use evdev::{
 
 pub const UINPUT_DEVICE_NAME: &str = "shiv virtual output";
 
+/// Create a virtual uinput device.
+///
+/// # Errors
+///
+/// This function will return an error if [`VirtualDeviceBuilder`] fails.
 pub fn create_uinput_device() -> Result<VirtualDevice, Box<dyn std::error::Error>> {
     let mut keys = AttributeSet::<Key>::new();
     for key in get_all_keys() {
@@ -18,7 +23,7 @@ pub fn create_uinput_device() -> Result<VirtualDevice, Box<dyn std::error::Error
     Ok(device)
 }
 
-pub fn get_all_keys() -> Vec<Key> {
+fn get_all_keys() -> Vec<Key> {
     vec![
         evdev::Key::KEY_RESERVED,
         evdev::Key::KEY_ESC,
