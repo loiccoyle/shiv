@@ -1,8 +1,9 @@
-use std::{error::Error, time::Duration};
+use std::error::Error;
 
 use clap::Parser;
 use evdev::{Device, EventStream};
-use tokio::{spawn, task::JoinHandle, time::sleep};
+use tokio::spawn;
+use tokio::sync::oneshot::{channel, Sender};
 use tokio_stream::{StreamExt, StreamMap};
 
 mod cli;
@@ -18,7 +19,9 @@ async fn handle_events(
     mut terminal: terminal::Terminal,
     mut stream_map: StreamMap<usize, EventStream>,
 ) -> Result<(), Box<dyn Error>> {
-    let mut cmd_task: Option<JoinHandle<()>> = None;
+    // When a command is running, this will be set to Some.
+    let mut abort_signal: Option<Sender<()>> = None;
+
     log::info!("Listening for keyboard events...");
     log::info!("Ctrl-C/ESC to exit");
     // Event loop
@@ -38,7 +41,7 @@ async fn handle_events(
                     terminal.emit(&[event]).unwrap_or_else(|e| {
                         log::error!("Failed to emit key: {}", e);
                     });
-                } else if cmd_task.is_none() {
+                } else if abort_signal.is_none() {
                     // don't update the terminal state if cmd is running
                     // Re-emit key presses based on the terminal state and capabilities
                     match terminal.handle_key(key, keyboard.is_shift())? {
@@ -55,44 +58,45 @@ async fn handle_events(
 
                 if keyboard.is_ctrl_c() || keyboard.is_escape() {
                     log::info!("Ctrl-C/ESC detected, exiting...");
-                    if let Some(task) = cmd_task {
+                    if let Some(signal) = abort_signal {
                         log::info!("Killing running command");
-                        // TODO: this does not actually stop the command from running
-                        task.abort();
+                        signal.send(()).unwrap();
                     }
                     terminal.clear()?;
                     break;
-                } else if keyboard.is_enter() && cmd_task.is_none() {
+                } else if keyboard.is_enter() && abort_signal.is_none() {
                     permissions::drop_privileges(uid)?;
                     log::debug!("Dropped privileges");
                     let runner = terminal.clone();
-                    cmd_task = Some(spawn(async move {
-                        let out = runner.run(uid).await;
-                        // TODO: improve this, this is a hack to allow for the task to be aborted
-                        sleep(Duration::from_millis(10)).await;
-                        match out {
-                            Ok(out) => {
-                                log::info!("Command ran successfully");
-                                runner.write(out).unwrap_or_else(|e| {
-                                    log::error!("Failed to write output: {}", e);
-                                });
-                                // TODO: It would be good to handle these exits in the main function
-                                utils::release_keyboards();
-                                std::process::exit(0);
+                    let (send, recv) = channel::<()>();
+                    abort_signal = Some(send);
+                    spawn(async move {
+                        let child = runner.run(uid).await;
+                        match child {
+                            Ok(mut task) => {
+                                log::debug!("Child process spawned successfully");
+                                tokio::select! {
+                                    _ = task.wait() => {
+                                        let output = task.wait_with_output().await.expect("Failed to wait on child");
+                                        let contents = String::from_utf8_lossy(&output.stdout) +
+                                            String::from_utf8_lossy(&output.stderr);
+                                        runner
+                                            .write(contents.into())
+                                            .unwrap_or_else( |e| {
+                                                log::error!("Failed to write output: {}", e);
+                                                std::process::exit(1);
+                                            });
+                                        std::process::exit(0);
+                                    }
+                                    _ = recv => task.kill().await.expect("kill failed"),
+                                }
                             }
                             Err(e) => {
-                                log::error!("Command failed: {}", e);
-                                runner
-                                    .write(format!("Command failed: {}", e))
-                                    .unwrap_or_else(|e| {
-                                        log::error!("Failed to write output: {}", e);
-                                    });
-                                // TODO: It would be good to handle these exits in the main function
-                                utils::release_keyboards();
+                                log::error!("Failed to spawn process: {}", e);
                                 std::process::exit(1);
                             }
                         }
-                    }));
+                    });
                 }
             }
             evdev::InputEventKind::Synchronization(_) => terminal.emit(&[event])?,

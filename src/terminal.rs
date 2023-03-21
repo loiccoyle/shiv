@@ -8,9 +8,10 @@ use std::collections::HashSet;
 use std::error::Error;
 use std::fmt::Debug;
 use std::fmt::Formatter;
-use std::process::Command;
+use std::process::Stdio;
 use std::sync::Arc;
 use std::sync::Mutex;
+use tokio::process::Command;
 
 lazy_static! {
     static ref KEY_TO_CHAR: HashMap<Key, char> = HashMap::from(
@@ -214,7 +215,7 @@ impl Default for TerminalConfig {
 pub struct Terminal {
     entry: Vec<char>,
     pos: usize,
-    pub device: Arc<Mutex<VirtualDevice>>,
+    device: Arc<Mutex<VirtualDevice>>,
     config: TerminalConfig,
 }
 
@@ -404,18 +405,24 @@ impl Terminal {
     /// # Errors
     ///
     /// This function will return an error if the command fails to run.
-    pub async fn run(&self, uid: u32) -> Result<String, Box<dyn Error + Send + Sync>> {
+    pub async fn run(
+        &self,
+        uid: u32,
+    ) -> Result<tokio::process::Child, Box<dyn Error + Send + Sync>> {
         let mut command = Command::new("sudo");
         command
             .args(["-u", &format!("#{}", uid), "-i", "--"])
             .args(&self.config.pre_cmd)
-            .arg(self.get_entry());
+            .arg(self.get_entry())
+            .stderr(Stdio::piped())
+            .stdout(Stdio::piped());
         log::info!("Running command: {:?}", &command);
-        let output = command.output()?;
-
-        let out = String::from_utf8_lossy(&output.stdout);
-        let err = String::from_utf8_lossy(&output.stderr);
-        Ok((out + err).to_string())
+        command.spawn().map_err(|e| e.into())
+        // let output = command.output()?;
+        //
+        // let out = String::from_utf8_lossy(&output.stdout);
+        // let err = String::from_utf8_lossy(&output.stderr);
+        // Ok((out + err).to_string())
     }
 
     /// Clear the input line. By sending backspace and delete events.
@@ -457,7 +464,7 @@ impl Terminal {
     ///
     /// This function will return an error if the event sending fails.
     pub fn write(&self, contents: String) -> Result<(), Box<dyn Error>> {
-        log::info!("Writing contents: {}", contents);
+        log::info!("Writing contents: {:?}", contents);
         let clear_event = self.clear_events();
         if !contents.is_empty() {
             match self.config.output_method {
