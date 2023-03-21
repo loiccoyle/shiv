@@ -60,7 +60,7 @@ async fn handle_events(
                     log::info!("Ctrl-C/ESC detected, exiting...");
                     if let Some(signal) = abort_signal {
                         log::info!("Killing running command");
-                        signal.send(()).unwrap();
+                        signal.send(()).map_err(|_| "Failed to send abort signal")?;
                     }
                     terminal.clear()?;
                     break;
