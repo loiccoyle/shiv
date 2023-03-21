@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use clap::Parser;
 use evdev::{Device, EventStream};
 use tokio::{
@@ -7,6 +5,8 @@ use tokio::{
     sync::oneshot::{channel, Sender},
 };
 use tokio_stream::{StreamExt, StreamMap};
+
+use std::error::Error;
 
 mod cli;
 mod keyboard;

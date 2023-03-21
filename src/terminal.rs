@@ -1,5 +1,7 @@
 use evdev::{uinput::VirtualDevice, EventType, InputEvent, Key};
 use lazy_static::lazy_static;
+use tokio::process::Command;
+
 use std::{
     collections::{HashMap, HashSet},
     error::Error,
@@ -7,7 +9,6 @@ use std::{
     process::Stdio,
     sync::{Arc, Mutex},
 };
-use tokio::process::Command;
 
 lazy_static! {
     static ref KEY_TO_CHAR: HashMap<Key, char> = HashMap::from(

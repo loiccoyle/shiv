@@ -1,4 +1,5 @@
 use evdev::{AttributeSet, InputEvent, Key};
+
 use std::{collections::HashSet, fmt::Debug};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
