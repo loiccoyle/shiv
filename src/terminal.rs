@@ -1,16 +1,12 @@
-use evdev::uinput::VirtualDevice;
-use evdev::EventType;
-use evdev::InputEvent;
-use evdev::Key;
+use evdev::{uinput::VirtualDevice, EventType, InputEvent, Key};
 use lazy_static::lazy_static;
-use std::collections::HashMap;
-use std::collections::HashSet;
-use std::error::Error;
-use std::fmt::Debug;
-use std::fmt::Formatter;
-use std::process::Stdio;
-use std::sync::Arc;
-use std::sync::Mutex;
+use std::{
+    collections::{HashMap, HashSet},
+    error::Error,
+    fmt::{Debug, Formatter},
+    process::Stdio,
+    sync::{Arc, Mutex},
+};
 use tokio::process::Command;
 
 lazy_static! {

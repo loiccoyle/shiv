@@ -2,8 +2,10 @@ use std::error::Error;
 
 use clap::Parser;
 use evdev::{Device, EventStream};
-use tokio::spawn;
-use tokio::sync::oneshot::{channel, Sender};
+use tokio::{
+    spawn,
+    sync::oneshot::{channel, Sender},
+};
 use tokio_stream::{StreamExt, StreamMap};
 
 mod cli;

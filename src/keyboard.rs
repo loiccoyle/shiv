@@ -1,8 +1,5 @@
-use evdev::AttributeSet;
-use evdev::InputEvent;
-use evdev::Key;
-use std::collections::HashSet;
-use std::fmt::Debug;
+use evdev::{AttributeSet, InputEvent, Key};
+use std::{collections::HashSet, fmt::Debug};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub enum Modifier {
