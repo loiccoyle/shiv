@@ -356,10 +356,9 @@ impl Terminal {
         self.key_events(Key::KEY_RIGHT, false).repeat(n_rights)
     }
 
-    fn add_char(&mut self, c: char) -> EventFlag {
+    fn add_char(&mut self, c: char) {
         self.entry.insert(self.pos, c);
         self.pos += 1;
-        EventFlag::Emit
     }
 
     fn get_entry(&self) -> String {
@@ -377,12 +376,13 @@ impl Terminal {
     ///
     /// This function will return an error if the event sending fails.
     pub fn handle_key(&mut self, key: Key, shift: bool) -> Result<EventFlag, Box<dyn Error>> {
-        if shift {
-            if let Some(c) = SHIFT_KEY_TO_CHAR.get(&key) {
-                return Ok(self.add_char(*c));
-            }
-        } else if let Some(c) = KEY_TO_CHAR.get(&key) {
-            return Ok(self.add_char(*c));
+        if let Some(c) = if shift {
+            SHIFT_KEY_TO_CHAR.get(&key)
+        } else {
+            KEY_TO_CHAR.get(&key)
+        } {
+            self.add_char(*c);
+            return Ok(EventFlag::Emit);
         }
         match key {
             Key::KEY_BACKSPACE => Ok(self.backspace()),
@@ -541,6 +541,11 @@ impl Terminal {
         Ok(())
     }
 
+    /// Emit the events to the virtual device.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if the event sending fails.
     pub fn emit(&self, events: &[InputEvent]) -> Result<(), Box<dyn Error>> {
         self.device.clone().lock().unwrap().emit(events)?;
         Ok(())
