@@ -18,7 +18,7 @@ When the enter key is pressed, the provided command is run and its output is pas
 
 `shiv` is designed to be bound to a key combination.
 
-For example, I use the following [`sxhkd`](https://github.com/baskerville/sxhkd) mappings:
+For example, using [`sxhkd`](https://github.com/baskerville/sxhkd):
 
 ```sxhkd
 super + i; any + g
@@ -57,7 +57,7 @@ Usage: shiv [OPTIONS] [PRE_CMD]
 Arguments:
   [PRE_CMD]
           Prefix input with this command
-          
+
           [default: "bash -c"]
 
 Options:
