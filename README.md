@@ -57,7 +57,7 @@ Usage: shiv [OPTIONS] [PRE_CMD]
 Arguments:
   [PRE_CMD]
           Prefix input with this command
-          
+
           [default: "bash -c"]
 
 Options:
@@ -93,3 +93,4 @@ Note: shiv requires priviledges to create and access keyboard devices.
 - [ ] look into better permission handling
 - [ ] test on different layouts
 - [ ] Give some feedback that the command is running
+- [ ] Look into https://github.com/chris-ricketts/keyboard-layouts
