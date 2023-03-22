@@ -17,7 +17,7 @@ dependencies = [
  "parking_lot",
  "thiserror",
  "winapi",
- "x11rb 0.10.1",
+ "x11rb",
 ]
 
 [[package]]
@@ -358,19 +358,6 @@ dependencies = [
 
 [[package]]
 name = "nix"
-version = "0.25.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f346ff70e7dbfd675fe90590b92d59ef2de15a8779ae305ebcbfd3f0caf59be4"
-dependencies = [
- "autocfg",
- "bitflags",
- "cfg-if",
- "libc",
- "memoffset 0.6.5",
-]
-
-[[package]]
-name = "nix"
 version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bfdda3d196821d6af13126e40375cdf7da646a96114af134d5f417a9a1dc8e1a"
@@ -561,7 +548,6 @@ dependencies = [
  "shlex",
  "tokio",
  "tokio-stream",
- "x11rb 0.11.1",
 ]
 
 [[package]]
@@ -842,20 +828,7 @@ dependencies = [
  "nix 0.24.3",
  "winapi",
  "winapi-wsapoll",
- "x11rb-protocol 0.10.0",
-]
-
-[[package]]
-name = "x11rb"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cdf3c79412dd91bae7a7366b8ad1565a85e35dd049affc3a6a2c549e97419617"
-dependencies = [
- "gethostname",
- "nix 0.25.1",
- "winapi",
- "winapi-wsapoll",
- "x11rb-protocol 0.11.1",
+ "x11rb-protocol",
 ]
 
 [[package]]
@@ -865,13 +838,4 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56b245751c0ac9db0e006dc812031482784e434630205a93c73cfefcaabeac67"
 dependencies = [
  "nix 0.24.3",
-]
-
-[[package]]
-name = "x11rb-protocol"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0b1513b141123073ce54d5bb1d33f801f17508fbd61e02060b1214e96d39c56"
-dependencies = [
- "nix 0.25.1",
 ]
