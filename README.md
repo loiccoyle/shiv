@@ -57,7 +57,7 @@ Usage: shiv [OPTIONS] [PRE_CMD]
 Arguments:
   [PRE_CMD]
           Prefix input with this command
-
+          
           [default: "bash -c"]
 
 Options:
