@@ -12,7 +12,7 @@ It keeps track of the user's inputs and forwards them selectively to the virtual
 
 When the enter key is pressed, the provided command is run and its output is pasted in (or typed out using the `-T` option).
 
-> **Note:** To create and grab the keyboard devices `shiv` needs elevated privileges. To help with this, a `polkit` file is available in the [`extra`](./extra) folder. The command, however, is run as the invoking user.
+> **Note:** To create and grab the keyboard devices `shiv` needs elevated privileges. To help with this, a `polkit` file is available in the [`extra`](extra) folder. The command, however, is run as the invoking user.
 
 ## 📋 Usage
 
