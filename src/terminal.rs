@@ -10,6 +10,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+extern crate arboard;
+
 lazy_static! {
     static ref KEY_TO_CHAR: HashMap<Key, char> = HashMap::from(
         [
@@ -519,8 +521,8 @@ impl Terminal {
         log::trace!("Paste events: {:?}", events);
 
         let mut clipboard = arboard::Clipboard::new()?;
-        let cp_data = clipboard.get_text().ok();
-        log::debug!("Clipboard data: {:?}", cp_data);
+        // let cp_data = clipboard.get_text().ok();
+        // log::debug!("Clipboard data: {:?}", cp_data);
         clipboard.set_text(contents)?;
         // Paste the contents
         self.send_events(events)
