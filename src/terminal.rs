@@ -488,7 +488,7 @@ impl Terminal {
         contents: String,
         prev_events: Option<Vec<InputEvent>>,
     ) -> Result<(), Box<dyn Error>> {
-        let mut events = prev_events.unwrap_or(Vec::new());
+        let mut events = prev_events.unwrap_or_default();
 
         for c in contents.chars() {
             if let Some((key, shift)) = CHAR_TO_KEY.get(&c) {
@@ -513,7 +513,7 @@ impl Terminal {
         contents: String,
         prev_events: Option<Vec<InputEvent>>,
     ) -> Result<(), Box<dyn Error>> {
-        let mut events = prev_events.unwrap_or(Vec::new());
+        let mut events = prev_events.unwrap_or_default();
 
         events.extend_from_slice(&self.key_events(Key::KEY_PASTE, false));
         log::trace!("Paste events: {:?}", events);
