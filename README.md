@@ -22,11 +22,11 @@ For example, using [`sxhkd`](https://github.com/baskerville/sxhkd):
 
 ```sxhkd
 super + i; any + g
-    sudo shiv -d 5 "sgpt"
+    sudo -E shiv -d 5 "sgpt"
 super + i; any + f
-    sudo shiv -d 5 "figlet"
+    sudo -E shiv -d 5 "figlet"
 super + i; any + i
-    sudo shiv -d 5
+    sudo -E shiv -d 5
 ```
 
 As always, if in doubt, see the `--help`:
@@ -66,6 +66,8 @@ Options:
 
   -d, --key-delay <KEY_DELAY>
           Add delay between keypresses, in ms, values between 1 and 10 work best
+          
+          [default: 5]
 
   -v, --verbose...
           Increase verbosity
@@ -93,4 +95,4 @@ Note: shiv requires priviledges to create and access keyboard devices.
 - [ ] look into better permission handling
 - [ ] test on different layouts
 - [ ] Give some feedback that the command is running
-- [ ] Look into https://github.com/chris-ricketts/keyboard-layouts
+- [ ] Look into <https://github.com/chris-ricketts/keyboard-layouts>
