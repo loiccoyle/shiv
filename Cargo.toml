@@ -6,22 +6,29 @@ authors = ["Loic Coyle <loic.coyle@hotmail.fr>"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [profile.release]
-opt-level='z'
-strip=true
+opt-level = 'z'
+strip = true
 codegen-units = 1
 lto = true
 
 [dependencies]
-arboard = { version="3.2.0", default-features=false }
+arboard = { version = "3.2.0", default-features = false }
 clap = { version = "4.1.8", features = ["derive"] }
 clap-verbosity-flag = "2.0.0"
-env_logger = {version="0.10.0", default-features=false, features=["auto-color", "humantime"]}
-evdev = {version="0.12.1", features=["tokio"]}
+env_logger = { version = "0.11.5", default-features = false, features = [
+  "auto-color",
+  "humantime",
+] }
+evdev = { version = "0.12.1", features = ["tokio"] }
 lazy_static = "1.4.0"
 log = "0.4.17"
-nix = "0.26.2"
+nix = { version = "0.29.0", features = ["user"] }
 shlex = "1.1.0"
-tokio = {version="1.26.0", features=["macros", "rt-multi-thread", "process"]}
+tokio = { version = "1.26.0", features = [
+  "macros",
+  "rt-multi-thread",
+  "process",
+] }
 tokio-stream = "0.1.12"
 
 [[bin]]
