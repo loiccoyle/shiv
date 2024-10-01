@@ -122,6 +122,7 @@ async fn _main() -> Result<(), Box<dyn std::error::Error>> {
 
     // setup uinput virtual device
     let virt_device = uinput::create_uinput_device()?;
+    log::debug!("Created uinput device.");
 
     // fetch keyboards
     let keyboard_devices: Vec<Device> = evdev::enumerate()
