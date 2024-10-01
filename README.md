@@ -47,7 +47,7 @@ Examples:
     $ shiv "python -c"
   • Query ChatGPT:
     $ shiv "sgpt"
-  • On demand calculator and consersions:
+  • On demand calculator and conversions:
     $ shiv "qalc -t"
   • ASCII art:
     $ shiv "figlet"
