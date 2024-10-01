@@ -54,11 +54,11 @@ fn set_egid(gid: u32) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn set_euid(uid: u32) -> Result<(), Box<dyn std::error::Error>> {
-    let uid = Uid::from_raw(uid);
-    nix::unistd::seteuid(uid)?;
-    Ok(())
-}
+// fn set_euid(uid: u32) -> Result<(), Box<dyn std::error::Error>> {
+//     let uid = Uid::from_raw(uid);
+//     nix::unistd::seteuid(uid)?;
+//     Ok(())
+// }
 
 #[cfg(test)]
 mod tests {
